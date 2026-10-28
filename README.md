@@ -1,13 +1,13 @@
 # CipherLink (사이퍼링크) — Codex 인수인계 패키지
 
-> 기준일: 2026-10-28 · 실제 소스 포함 · 개발 PC: **v0.11.0** / Android: **v0.11.0**
+> 기준일: 2026-10-28 · 실제 소스 포함 · 개발 PC: **v0.11.0** / Android: **v0.11.1**
 
 **Codex는 먼저 [`CODEX_START_HERE.md`](CODEX_START_HERE.md) → [`AGENTS.md`](AGENTS.md) → [`docs/OPEN_ISSUES.md`](docs/OPEN_ISSUES.md)를 읽을 것.**
 
 ## 포함된 파일
 
 - `pc/`: Python/Tkinter Windows 앱 **v0.11.0** 전체 소스, 자동 테스트, EXE 빌드 배치 파일, 앱 아이콘.
-- `android/`: Kotlin Android 네이티브 앱 **v0.11.0** 전체 소스(동기화, API, 플로팅, 계정, 게임별 조회).
+- `android/`: Kotlin Android 네이티브 앱 **v0.11.1** 전체 소스(동기화, API, 플로팅, 계정, 게임별 조회).
 - `tests/`: Android 측 순수 Kotlin 검증 코드.
 - `reference_ui/`: 현재 PC GUI 캡처 2장(인수인계 참고용, 실제 UI 아님).
 - `docs/`: 기능 요구사항, 최근 오류, 보안 규칙, 점수·회차 처리, 실행·배포 및 버전 이력.

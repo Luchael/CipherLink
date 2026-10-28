@@ -159,4 +159,3 @@ class EvidenceWindowTests(unittest.TestCase):
                 self.assertFalse(db.evidence_seen("old:ocr",2200,min_interval=8))
             finally:
                 db.db.close()
-
