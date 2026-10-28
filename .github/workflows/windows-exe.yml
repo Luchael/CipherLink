@@ -21,8 +21,19 @@ jobs:
         with:
           python-version: "3.12"
       - name: Check, test, and package
-        shell: cmd
-        run: call build_windows.bat
+        shell: pwsh
+        run: |
+          & cmd /d /c build_windows.bat 2>&1 | Tee-Object -FilePath build-output.log
+          $buildExit = $LASTEXITCODE
+          if ($buildExit -ne 0) {
+            $errors = Get-Content build-output.log | Select-String -Pattern 'Error:|ERROR:|FAIL:|FAILED|Traceback|No module named' | Select-Object -Last 12
+            foreach ($entry in $errors) {
+              $safe = $entry.Line -replace 'https?://\S+', '<url>'
+              $safe = $safe.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Output "::error::$safe"
+            }
+            exit $buildExit
+          }
       - name: Save EXE and checksum for manual validation
         uses: actions/upload-artifact@v4
         with:
