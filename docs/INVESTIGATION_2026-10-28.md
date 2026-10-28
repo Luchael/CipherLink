@@ -80,3 +80,5 @@
 - Android 최종 assets/소스를 포함한 전체 APK 빌드·서명 무결성 확인 결과와 산출물 정보는 빌드 기록을 따른다. 기존 서명 호환과 실제 기기 동작은 미검증.
 - 명조·림버스 live 일정, 리버스/스텔라 신규 일정 출처, 추가 게임 개인 진행도 API 조사는 네트워크 설정 반영과 실제 공식 응답 근거가 남아 있다. 이 기능들이 모두 자동 동작한다고 보고하지 않는다.
 - 클라우드 install_script/start_skill 및 조사 도메인 허용 목록을 초안에 저장했다. 초안 저장은 적용/게시/새 태스크 복원 검증과 다르다.
+
+최종 Android 디버그 산출물: package `com.gametodo.nativeapp`, versionCode25 / versionName0.10.4-alpha, 7,402,087bytes, SHA256 `cb07a1ed4c42a2f21a27116d02cbdee36b5ccf36587ccbfc88e3321f47ea5256`. 최신 assets3개가 소스와 바이트 일치하고 빌드 전후 Android 소스 변경이 없음을 확인했다. 새 debug 서명(v2/signer1) 무결성 검사 통과. 기존 설치본이 다른 키로 서명됐으면 덮어쓰기 설치가 안 될 수 있으므로 기존 앱을 삭제하지 않는다.
