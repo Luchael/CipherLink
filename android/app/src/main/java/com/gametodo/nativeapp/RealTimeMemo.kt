@@ -29,7 +29,14 @@ object RealTimeMemo {
             for (path in paths) {
                 val value = readString(data,path) ?: continue
                 // 계정 토큰 등 민감한 문자열은 표시하지 않는다. 고정된 상태 필드만 읽는다.
-                if (value.length <= 48) result.add("$name $value")
+                val readable=when(value) {
+                    "true" -> "예";"false" -> "아니오"
+                    "SaleStateDone", "CardSignDone", "Done", "Finished" -> "완료"
+                    "SaleStateDoing" -> "영업 중"
+                    "CardSignNotDone", "SaleStateNotStart", "NotStarted" -> "미완료"
+                    else -> "상태 확인 필요"
+                }
+                result.add("$name $readable")
                 break
             }
         }

@@ -23,7 +23,7 @@ import kotlin.math.roundToInt
 
 /**
  * 게임 전경에서만 나타나는 원형 아이콘 오버레이.
- * - 작은 원형 버튼: 현재 실행된 게임 앱의 런처 아이콘만 표시 (문자 없음).
+ * - 작은 원형 버튼: 사이퍼링크 앱의 런처 아이콘만 표시 (문자 없음).
  * - 탭: Todoist 목록 패널 열기/닫기. 드래그: 위치 변경, 로컬 설정에 위치 저장.
  * - PC와 같은 Todoist 계정을 읽으며 미완료/날짜/섹션 필터와 완료 전 재검증 적용.
  * - 접근성 이벤트로 현재 게임을 감지하므로 화면 캡처/OCR/상시 폴링 없음.
@@ -68,14 +68,6 @@ class FloatingOverlay(private val context: Context) {
                 this.x = x; this.y = y
             }
 
-    /** 활성 앱 패키지로 실제 설치된 앱의 런처 아이콘을 불러온다. */
-    private fun installedIcon(target: GameRules.Game, activePackage: String?) =
-        sequenceOf(activePackage).plus(target.packages.asSequence()).filterNotNull()
-            .firstNotNullOfOrNull { pkg ->
-                try { context.packageManager.getApplicationIcon(pkg) }
-                catch (_: Exception) { null }
-            } ?: context.getDrawable(android.R.drawable.sym_def_app_icon)
-
     fun setGame(next: GameRules.Game?, activePackage: String? = null) {
         if (next == null) { remove(); return }
         if (game?.key == next.key && gamePackage == activePackage && bubbleView != null) return
@@ -93,9 +85,9 @@ class FloatingOverlay(private val context: Context) {
             contentDescription = "${next.name} 할 일 열기. 드래그하여 이동"
         }
         bubble.addView(ImageView(context).apply {
-            setImageDrawable(installedIcon(next, activePackage))
+            setImageDrawable(context.applicationInfo.loadIcon(context.packageManager))
             scaleType = ImageView.ScaleType.CENTER_CROP
-            // 둥근 테두리와 게임 아이콘 사이 여백. 아이콘 자체 외의 문자는 노출하지 않는다.
+            // 둥근 테두리와 사이퍼링크 아이콘 사이 여백. 아이콘 자체 외의 문자는 노출하지 않는다.
             setPadding(dp(5),dp(5),dp(5),dp(5))
         }, FrameLayout.LayoutParams(-1,-1))
         bubble.setOnClickListener { togglePanel(next) }

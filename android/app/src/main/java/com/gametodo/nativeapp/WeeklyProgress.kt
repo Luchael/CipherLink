@@ -10,6 +10,7 @@ object WeeklyProgress {
     const val ZZZ_RIDU_POLY = 800 // 마지막 폴리크롬 구간: 800점, 전체 2100점과 다름
     const val ZZZ_BOUNTY = 8000   // 제로 공동 현상금 최종 보상 구간
     const val WEEKLY_BOSSES = 3
+    const val HSR_WEEKLY_POINTS = 18000 // 사용자 지정 주간 목표
 
     /** 첫 번째와 두 번째 항목이 모두 확인된 경우만 합산 2/2 게이지를 만든다. */
     private fun both(role: GameRole, key: String, one: Boolean?, two: Boolean?): AccountGauge? {
@@ -28,12 +29,12 @@ object WeeklyProgress {
      * 4.2 버전 이후 화폐 전쟁·시뮬레이션 우주의 보상이 하나의 주간 점수로 통합됐다.
      * 실시간 메모의 current_rogue_score / max_rogue_score를 읽는다.
      * 이전 코드의 currency_wars.* 필드는 통합 점수라는 보장이 없어 사용하지 않는다.
-     * 계정 등급에 따라 최대 점수가 다를 수 있으므로 18000을 고정하지 않는다.
+     * 사용자가 요청한 18000점 목표를 적용한다. API 계정별 만점과 구별한다.
      */
     fun hsr(note: JSONObject, role: GameRole): AccountGauge? {
         val score = readNumber(note, "current_rogue_score", "rogue_score")
-        val maxScore = readNumber(note, "max_rogue_score", "rogue_max_score")
-        val scoreDone = if (score != null && maxScore != null && maxScore > 0 && score >= 0)
+        val maxScore = HSR_WEEKLY_POINTS
+        val scoreDone = if (score != null && score >= 0)
             score >= maxScore else null
         // 역전의 여운: 남은 *주간 할인 보상* 횟수. 보스 전투 횟수 자체는 API로 확인 불가.
         val remaining = readNumber(note, "remaining_weekly_discounts", "weekly_cocoon_cnt")
@@ -57,14 +58,14 @@ object WeeklyProgress {
         "genshin" -> listOf("주간보스 할인 남음: " + (readNumber(note,"remain_resin_discount_num")?.toString() ?: "미확인") + "/3")
         "hsr" -> {
             val score = readNumber(note, "current_rogue_score", "rogue_score")
-            val maxScore = readNumber(note, "max_rogue_score", "rogue_max_score")
+            val maxScore = HSR_WEEKLY_POINTS
             val remain = readNumber(note, "remaining_weekly_discounts", "weekly_cocoon_cnt")
             val maxBoss = readNumber(note, "max_weekly_discounts") ?: WEEKLY_BOSSES
             val validBoss = maxBoss == WEEKLY_BOSSES && remain != null && remain in 0..WEEKLY_BOSSES
             listOf("시뮬레이션 우주·화폐 전쟁 통합 주간 포인트: " +
                 (score?.toString() ?: "미확인") + "/" + (maxScore?.toString() ?: "미확인"),
-                "역전의 여운 주간 보상 사용: " +
-                (if (validBoss) "${maxBoss - remain!!}/$maxBoss" else "미확인/3") +
+                "역전의 여운 주간 보상 잔여: " +
+                (if (validBoss) "$remain/$maxBoss" else "미확인/3") +
                 " (실제 전투 횟수가 아닌 할인 보상 횟수)",
                 "이상 중재: 회차와 별 수 조회 API 확인 전 자동 체크 보류")
         }

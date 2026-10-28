@@ -127,7 +127,8 @@ def genshin_status(note):
 def hsr_status(note):
     daily = gauge(note, ("current_train_score", "daily_training.current", "daily_training.current_score"),
                   ("max_train_score", "daily_training.max", "daily_training.max_score"))
-    rogue = gauge(note, ("current_rogue_score",), ("max_rogue_score",))
+    score = number(note, "current_rogue_score", "rogue_score")
+    rogue = Gauge(score if score is not None and score >= 0 else None, 18000)
     # 일일 훈련 점수가 현재/최대치에 도달하면 보상 수령 여부와 무관하게 완료.
     # 플래그가 있다면 실제 수령 여부 확인용으로만 남겨 둔다.
     claim = field_at(note, "daily_training.all_rewards_claimed")
@@ -145,7 +146,9 @@ def hsr_status(note):
     return Status("hsr", "HoYoLAB", daily, claim,
                   {"simulated_universe_points": rogue.text()},
                   "일일 훈련 점수가 최대치면 Todoist 완료",
-                  metrics={"rogue_weekly": rogue, "weekly": weekly})
+                  metrics={"rogue_weekly": rogue, "weekly_boss_used":
+                      Gauge(3 - remain, 3) if remain is not None and discount_limit == 3 and 0 <= remain <= 3
+                      else Gauge(None, None), "weekly": weekly})
 
 
 def zzz_status(note):

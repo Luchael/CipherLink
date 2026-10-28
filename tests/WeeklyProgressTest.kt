@@ -27,20 +27,22 @@ fun main() {
     fun gauge(note: JSONObject) = WeeklyProgress.hsr(note, role)
     check(gauge(obj("current_rogue_score" to 18000, "max_rogue_score" to 18000,
         "remaining_weekly_discounts" to 0, "max_weekly_discounts" to 3))?.filled == true)
-    // 만점이 계정 데이터마다 달라도 최대치에 도달하면 완료.
+    // 사용자 목표는 API 만점과 무관하게 18000점이다.
     check(gauge(obj("current_rogue_score" to 12000, "max_rogue_score" to 12000,
+        "remaining_weekly_discounts" to 0))?.filled == false)
+    check(gauge(obj("current_rogue_score" to 18000, "max_rogue_score" to 24000,
         "remaining_weekly_discounts" to 0))?.filled == true)
     check(gauge(obj("current_rogue_score" to 6000, "max_rogue_score" to 12000,
         "remaining_weekly_discounts" to 2))?.current == 0)
     check(gauge(obj("current_rogue_score" to 12000, "max_rogue_score" to 12000,
-        "remaining_weekly_discounts" to 1))?.current == 1)
+        "remaining_weekly_discounts" to 1))?.current == 0)
     check(gauge(obj("current_rogue_score" to 5000, "max_rogue_score" to 12000,
         "remaining_weekly_discounts" to 0))?.current == 1)
     // 기존의 화폐 전쟁 전용 필드만 있고 실제 통합 포인트가 없으면 완료 금지.
     check(gauge(obj("currency_wars" to obj("weekly_score" to 99999),
         "remaining_weekly_discounts" to 0)) == null)
     check(gauge(obj("current_rogue_score" to 18000,
-        "remaining_weekly_discounts" to 0)) == null) // 최대 포인트 미제공
+        "remaining_weekly_discounts" to 0))?.filled == true) // 사용자 지정 목표
     check(gauge(obj("current_rogue_score" to 18000, "max_rogue_score" to 18000)) == null)
     check(gauge(obj("current_rogue_score" to 18000, "max_rogue_score" to 18000,
         "max_weekly_discounts" to 2, "remaining_weekly_discounts" to 0)) == null)
@@ -48,7 +50,7 @@ fun main() {
         "weekly_cocoon_cnt" to 0))?.filled == true)
     check(WeeklyProgress.diagnostic(obj("current_rogue_score" to 9000,
         "max_rogue_score" to 12000, "remaining_weekly_discounts" to 1), "hsr")
-        .any { it.contains("9000/12000") })
+        .any { it.contains("9000/18000") })
     check(AutoCheckIntervals.minutes == listOf(15,30,60,120,180,360,720,1440))
     check(AutoCheckIntervals.normalize(3) == 15)
     check(AutoCheckIntervals.normalize(720) == 720)

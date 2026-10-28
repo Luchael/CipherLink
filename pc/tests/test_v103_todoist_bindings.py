@@ -51,6 +51,18 @@ class ScreenshotBindingTests(unittest.TestCase):
         self.assertFalse(weekly({'current_rogue_score':17000,'max_rogue_score':18000,'remaining_weekly_discounts':0}).filled)
         self.assertTrue(weekly({'current_rogue_score':18000,'max_rogue_score':18000,'remaining_weekly_discounts':0}).filled)
 
+    def test_starrail_weekly_uses_requested_18000_target(self):
+        def weekly(score, maximum=18000, remain=0):
+            return hsr_status({'current_rogue_score':score,'max_rogue_score':maximum,
+                               'remaining_weekly_discounts':remain}).metrics['weekly']
+        self.assertFalse(weekly(12000, 12000).filled)
+        self.assertFalse(weekly(17999).filled)
+        self.assertTrue(weekly(18000, 24000).filled)
+        self.assertFalse(weekly(18000, remain=1).filled)
+        self.assertFalse(weekly(18000, remain=-1).filled)
+        self.assertEqual(hsr_status({'current_rogue_score':18000,
+                                    'remaining_weekly_discounts':0}).metrics['rogue_weekly'].maximum, 18000)
+
     def test_pc_genshin_weekly_boss_use_three_discounts(self):
         def weekly(remain):
             return genshin_status({'remain_resin_discount_num':remain,'resin_discount_num_limit':3}).metrics['weekly']

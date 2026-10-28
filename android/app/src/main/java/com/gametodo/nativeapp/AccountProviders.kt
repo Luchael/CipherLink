@@ -247,6 +247,10 @@ object HoyoProvider {
                 add("daily", readNumber(note, "current_train_score"),
                     readNumber(note, "max_train_score") ?: 500)
                 WeeklyProgress.hsr(note,role)?.let { gauges.add(it) }
+                add("rogue_weekly", readNumber(note,"current_rogue_score","rogue_score"), WeeklyProgress.HSR_WEEKLY_POINTS)
+                val remaining = readNumber(note,"remaining_weekly_discounts","weekly_cocoon_cnt")
+                if (remaining != null && remaining in 0..3 && (readNumber(note,"max_weekly_discounts") ?: 3) == 3)
+                    add("weekly_boss_used", 3 - remaining, 3)
             }
             "zzz" -> {
                 // 글로벌 ZZZ note에서 확인된 필드: vitality, weekly_task.
@@ -266,55 +270,8 @@ object HoyoProvider {
      * 게임 화면 OCR을 전혀 사용하지 않는다.
      */
     fun detailLines(role: GameRole, note: JSONObject): List<String> {
-        val lines = mutableListOf<String>()
-        fun gauge(title: String, cur: Int?, max: Int?) {
-            if (cur != null && max != null && max > 0) lines.add("$title  $cur/$max")
-        }
-        fun value(title: String, field: String, suffix: String = "") {
-            val got = readNumber(note,field)
-            if (got != null) lines.add("$title  $got$suffix")
-        }
-        fun status(title: String, field: String, done: String) {
-            val got = readString(note,field)
-            if (!got.isNullOrBlank()) lines.add("$title  ${if(got==done) "완료" else got}")
-        }
-        when(role.game) {
-            "genshin" -> {
-                gauge("레진",readNumber(note,"current_resin"),readNumber(note,"max_resin"))
-                gauge("일일 의뢰",readNumber(note,"finished_task_num"),4)
-                value("주간 보스 할인 남음", "remain_resin_discount_num","회")
-            }
-            "hsr" -> {
-                gauge("개척력",readNumber(note,"current_stamina"),readNumber(note,"max_stamina"))
-                value("예비 개척력", "current_reserve_stamina")
-                gauge("일일 훈련",readNumber(note,"current_train_score"),
-                    readNumber(note,"max_train_score") ?: 500)
-                gauge("시뮬레이션 우주·화폐 전쟁 통합 포인트",
-                    readNumber(note,"current_rogue_score", "rogue_score"),
-                    readNumber(note,"max_rogue_score", "rogue_max_score"))
-                readNumber(note, "remaining_weekly_discounts", "weekly_cocoon_cnt")?.let { remaining ->
-                    lines.add("역전의 여운 주간 할인 보상 남음  ${remaining}회")
-                }
-                value("탐사 파견 완료", "accepted_expedition_num")
-            }
-            "zzz" -> {
-                gauge("배터리",readNumber(note,"energy.progress.current"),readNumber(note,"energy.progress.max"))
-                gauge("일일 활약도",readNumber(note,"vitality.current"),readNumber(note,"vitality.max"))
-                gauge("주간 활약도",readNumber(note,"weekly_task.cur_point"),readNumber(note,"weekly_task.max_point"))
-                gauge("현상금 의뢰",readNumber(note,"bounty_commission.num"),readNumber(note,"bounty_commission.total"))
-                status("비디오 가게", "vhs_sale.sale_state", "SaleStateDone")
-                status("일일 보상", "card_sign", "CardSignDone")
-            }
-        }
-        lines.addAll(WeeklyProgress.diagnostic(note,role.game))
-        // HoYoLAB 실시간 메모의 부가 상태를 별도 화면 구역으로 보여준다.
-        // 보조 필드가 있다고 자동 완료 판정에 임의로 추가하지 않는다.
-        val memo = RealTimeMemo.detailLines(role.game, note)
-            .filterNot { it in lines }
-        if (memo.isNotEmpty()) {
-            lines.add("— 실시간 메모 부가 정보 —")
-            lines.addAll(memo)
-        }
+        // One source for each field; scored metrics already have their own progress cards.
+        val lines = ProgressMemo.lines(role.game, note)
         return lines
     }
 }

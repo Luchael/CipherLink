@@ -2,6 +2,7 @@ package com.gametodo.nativeapp
 
 import android.content.Context
 import org.json.JSONObject
+import org.json.JSONArray
 
 /** PC와 동일한 shared/game_rules.json을 읽는 단일 게임 규칙 관리자. */
 object GameRules {
@@ -11,7 +12,9 @@ object GameRules {
     data class Game(val key: String, val name: String, val prefix: String,
                     val label: String, val resetHour: Int?, val packages: List<String>)
 
-    fun all(context: Context): List<Game> {
+    fun all(context: Context): List<Game> = builtIn(context) + labelGames(context)
+
+    private fun builtIn(context: Context): List<Game> {
         cached?.let { return it }
         synchronized(this) {
             cached?.let { return it }
@@ -35,6 +38,20 @@ object GameRules {
         return result
     }
 
+    private fun labelGames(context: Context): List<Game> = runCatching {
+        val labels=JSONArray(context.getSharedPreferences("gametodo",Context.MODE_PRIVATE).getString("game_labels","[]"))
+        (0 until labels.length()).map {labels.getString(it)}.filter {it.isNotBlank()}.distinct()
+            .filter {label -> builtIn(context).none {it.label==label}}
+            .map {label->Game(LabelGames.key(label),label,"",label,null,emptyList())}
+    }.getOrDefault(emptyList())
+
+    fun addLabelGame(context: Context, label: String) {
+        require(label.isNotBlank())
+        val labels=(labelGames(context).map {it.label}+label).distinct()
+        context.getSharedPreferences("gametodo",Context.MODE_PRIVATE).edit()
+            .putString("game_labels",JSONArray(labels).toString()).apply()
+    }
+
     fun forPackage(context: Context, packageName: String): Game? {
         val custom = context.getSharedPreferences("gametodo", Context.MODE_PRIVATE)
             .getString("packages", "") ?: ""
@@ -47,5 +64,5 @@ object GameRules {
     }
 
     fun matchingTask(game: Game, title: String, labels: List<String>): Boolean =
-        title.startsWith("[${game.prefix}]") || game.label in labels
+        (game.prefix.isNotBlank() && title.startsWith("[${game.prefix}]")) || LabelGames.matches(game.label,labels)
 }
