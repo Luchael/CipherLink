@@ -1,0 +1,9 @@
+# 빌드 결과와 기기별 설정만 제외합니다.
+.gradle/
+.idea/
+local.properties
+**/build/
+*.apk
+*.aab
+*.jks
+*.keystore

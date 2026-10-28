@@ -1,0 +1,335 @@
+{
+  "schema_version": 1,
+  "origin": "Todoist DoDoGames screenshots 2026-10-28",
+  "matching": "exact title + game prefix/label; no new Todoist tasks are created",
+  "excluded_games": [
+    "colorsweeper"
+  ],
+  "tasks": [
+    {
+      "game": "genshin",
+      "title": "[원신] 일퀘",
+      "cadence": "daily",
+      "metric": "daily",
+      "status": "auto",
+      "aliases": [],
+      "note": ""
+    },
+    {
+      "game": "hsr",
+      "title": "[열차] 일퀘",
+      "cadence": "daily",
+      "metric": "daily",
+      "status": "auto",
+      "aliases": [],
+      "note": ""
+    },
+    {
+      "game": "zzz",
+      "title": "[젠존제] 일퀘",
+      "cadence": "daily",
+      "metric": "daily",
+      "status": "auto",
+      "aliases": [],
+      "note": ""
+    },
+    {
+      "game": "wuthering",
+      "title": "[명조] 일퀘",
+      "cadence": "daily",
+      "metric": "daily",
+      "status": "conditional",
+      "aliases": [],
+      "note": "글로벌 개인 일일 진행도 API 미검증. 현 PC read_wuthering은 외부 API 호출을 명시적으로 거부. 연동 시 검증 필수."
+    },
+    {
+      "game": "arknights",
+      "title": "[명방] 일퀘",
+      "cadence": "daily",
+      "metric": "daily",
+      "status": "conditional",
+      "aliases": [],
+      "note": "PC 23:59 명시적 허용 + 계정 읽기 성공 시에만, 로그인 시 게임 접속이 끊길 수 있음"
+    },
+    {
+      "game": "reverse1999",
+      "title": "[립9] 일퀘",
+      "cadence": "daily",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "읽기 전용 개인 진행도 API 미확인"
+    },
+    {
+      "game": "limbus",
+      "title": "[림컴] 엔케팔린 소모",
+      "cadence": "daily",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "게임 진행도 API 미확인"
+    },
+    {
+      "game": "stella",
+      "title": "[스소] 일퀘",
+      "cadence": "daily",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "게임 진행도 API 미확인"
+    },
+    {
+      "game": "endfield",
+      "title": "[엔필] 일퀘",
+      "cadence": "daily",
+      "metric": "daily",
+      "status": "auto",
+      "aliases": [],
+      "note": ""
+    },
+    {
+      "game": "genshin",
+      "title": "[원신] 주간보스",
+      "cadence": "weekly",
+      "metric": "weekly",
+      "status": "auto",
+      "aliases": [
+        "[원신] 주간퀘",
+        "[원신] 주간퀘스트"
+      ],
+      "note": "주간 보스 할인 사용 3회"
+    },
+    {
+      "game": "hsr",
+      "title": "[열차] 주간퀘스트",
+      "cadence": "weekly",
+      "metric": "weekly",
+      "status": "auto",
+      "aliases": [
+        "[열차] 주간퀘"
+      ],
+      "note": "통합 포인트 최대 + 역전의 여운 할인 보상 3회 모두 확인"
+    },
+    {
+      "game": "zzz",
+      "title": "[젠존제] 주간퀘",
+      "cadence": "weekly",
+      "metric": "weekly",
+      "status": "auto",
+      "aliases": [
+        "[젠존제] 주간퀘스트"
+      ],
+      "note": "리두 주간 보상 800점 + 현상금 의뢰 8000점 확인; 하위 작업은 독립 자동완료 안 함"
+    },
+    {
+      "game": "wuthering",
+      "title": "[명조] 주간퀘",
+      "cadence": "weekly",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "글로벌 주간 퀘스트 점수 API 미검증"
+    },
+    {
+      "game": "limbus",
+      "title": "[림컴] 거던",
+      "cadence": "weekly",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "개인 완료 기록 API 미확인"
+    },
+    {
+      "game": "arknights",
+      "title": "[명방] 섬멸작전 1800개",
+      "cadence": "weekly",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "섬멸 합성옥 목표를 증명할 API 미검증"
+    },
+    {
+      "game": "genshin",
+      "title": "[원신] 환상극",
+      "cadence": "endgame",
+      "metric": "theater",
+      "status": "auto",
+      "aliases": [],
+      "note": "현재 회차 스텔라 12개"
+    },
+    {
+      "game": "genshin",
+      "title": "[원신] 나선",
+      "cadence": "endgame",
+      "metric": "spiral",
+      "status": "auto",
+      "aliases": [
+        "[원신] 나선비경"
+      ],
+      "note": "현재 회차 36별; 두 번째 사진의 월간 부분에서 완전히 노출되지 않아 기존 이름 유지"
+    },
+    {
+      "game": "reverse1999",
+      "title": "[립9] 심면구역",
+      "cadence": "monthly",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "개인 완료 기록 API 미확인"
+    },
+    {
+      "game": "stella",
+      "title": "[스소] 연합토벌",
+      "cadence": "monthly",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "개인 완료 기록 API 미확인"
+    },
+    {
+      "game": "genshin",
+      "title": "[원신] 지제전",
+      "cadence": "rotation",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "정확한 제목은 스크린샷 기준; API 보상 상태 검증 전 수동"
+    },
+    {
+      "game": "hsr",
+      "title": "[열차] 이상중재",
+      "cadence": "endgame",
+      "metric": "arbitration",
+      "status": "auto",
+      "aliases": [
+        "[열차] 이상 중재"
+      ],
+      "note": ""
+    },
+    {
+      "game": "hsr",
+      "title": "[열차] 혼돈",
+      "cadence": "endgame",
+      "metric": "moc",
+      "status": "auto",
+      "aliases": [
+        "[열차] 혼돈의 기억"
+      ],
+      "note": ""
+    },
+    {
+      "game": "hsr",
+      "title": "[열차] 허구",
+      "cadence": "endgame",
+      "metric": "pure_fiction",
+      "status": "auto",
+      "aliases": [
+        "[열차] 허구 이야기"
+      ],
+      "note": ""
+    },
+    {
+      "game": "hsr",
+      "title": "[열차] 종말",
+      "cadence": "endgame",
+      "metric": "apocalyptic",
+      "status": "auto",
+      "aliases": [
+        "[열차] 종말의 환영"
+      ],
+      "note": ""
+    },
+    {
+      "game": "zzz",
+      "title": "[젠존제] 시유방어전",
+      "cadence": "endgame",
+      "metric": "shiyu",
+      "status": "auto",
+      "aliases": [
+        "[젠존제] 방어전"
+      ],
+      "note": "현재 회차 4전선 S + 5전선 3방 각각 S"
+    },
+    {
+      "game": "zzz",
+      "title": "[젠존제] 강습전",
+      "cadence": "endgame",
+      "metric": "deadly",
+      "status": "auto",
+      "aliases": [],
+      "note": "현재 회차 일반 3보스 각 3별; 절망 난이도 제외"
+    },
+    {
+      "game": "wuthering",
+      "title": "[명조] 탑",
+      "cadence": "rotation",
+      "metric": "tower",
+      "status": "conditional",
+      "aliases": [],
+      "note": "글로벌 개인 전적 API 미확인; 구 PC 측 조회가 활성화된 경우 서버 다음 갱신 시각 필수"
+    },
+    {
+      "game": "wuthering",
+      "title": "[명조] 폐허",
+      "cadence": "rotation",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "글로벌 개인 완료 기록 API 미검증"
+    },
+    {
+      "game": "wuthering",
+      "title": "[명조] 매트릭스",
+      "cadence": "rotation",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "글로벌 개인 완료 기록 API 미검증"
+    },
+    {
+      "game": "stella",
+      "title": "[스소] 재앙의전선",
+      "cadence": "rotation",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "개인 완료 기록 API 미확인"
+    },
+    {
+      "game": "stella",
+      "title": "[스소] 종언의 노래",
+      "cadence": "rotation",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "개인 완료 기록 API 미확인"
+    },
+    {
+      "game": "reverse1999",
+      "title": "[립9] 갈기의 게시판1",
+      "cadence": "rotation",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "개인 보상 API 미확인"
+    },
+    {
+      "game": "reverse1999",
+      "title": "[립9] 갈기의 게시판2",
+      "cadence": "rotation",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "개인 보상 API 미확인"
+    },
+    {
+      "game": "reverse1999",
+      "title": "[립9] 갈기의 게시판3",
+      "cadence": "rotation",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "개인 보상 API 미확인"
+    }
+  ]
+}

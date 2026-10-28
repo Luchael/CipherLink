@@ -1,0 +1,43 @@
+{
+  "spiral": {
+    "target": 36,
+    "unit": "star",
+    "task": "[원신] 나선"
+  },
+  "theater": {
+    "target": 12,
+    "unit": "stella",
+    "task": "[원신] 환상극"
+  },
+  "stygian": {
+    "difficulty": "dire",
+    "task": "[원신] 지맥제압전",
+    "note": "극한 난이도 단독 클리어만 인정. API가 확인되지 않으면 자동 완료 금지"
+  },
+  "moc": {
+    "target": 36,
+    "unit": "star",
+    "task": "[열차] 혼돈"
+  },
+  "pure_fiction": {
+    "target": 12,
+    "unit": "star",
+    "task": "[열차] 허구"
+  },
+  "apocalyptic": {
+    "target": 12,
+    "unit": "star",
+    "task": "[열차] 종말"
+  },
+  "deadly": {
+    "target": 9,
+    "unit": "star",
+    "task": "[젠존제] 강습전"
+  },
+  "arbitration": {
+    "target": 12,
+    "unit": "star",
+    "task": "[열차] 이상중재",
+    "note": "기사 9성 + 왕 3성. 현재 회차 검증된 기록 API가 없으면 완료하지 않음"
+  }
+}

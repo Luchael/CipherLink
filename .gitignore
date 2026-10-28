@@ -1,0 +1,22 @@
+# Never commit user-specific credentials, settings or runtime data
+.env
+.env.*
+**/config.json
+**/data/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.log
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/.gradle/
+**/.idea/
+**/local.properties
+**/build/
+**/dist/
+**/*.apk
+**/*.aab
+**/*.jks
+**/*.keystore
+**/*api_diagnostic*.json

@@ -1,0 +1,165 @@
+{
+  "section_name": "이벤트 / 기간 한정",
+  "project_id": "",
+  "section_id": "",
+  "poll_hours": 0.25,
+  "screen_interval_sec": 30,
+  "bridge_port": 8765,
+  "game_settings": {
+    "endfield": {
+      "enabled": true
+    },
+    "reverse1999": {
+      "enabled": false
+    },
+    "arknights": {
+      "enabled": false
+    },
+    "stella": {
+      "enabled": false
+    }
+  },
+  "window_titles": {
+    "genshin": [
+      "Genshin Impact",
+      "원신"
+    ],
+    "hsr": [
+      "Honkai: Star Rail",
+      "붕괴: 스타레일"
+    ],
+    "zzz": [
+      "Zenless Zone Zero",
+      "젠레스 존 제로"
+    ],
+    "wuthering": [
+      "Wuthering Waves",
+      "명조"
+    ],
+    "limbus": [
+      "Limbus Company",
+      "림버스 컴퍼니"
+    ],
+    "reverse1999": [
+      "Reverse: 1999",
+      "리버스: 1999"
+    ],
+    "arknights": [
+      "Arknights",
+      "명일방주"
+    ],
+    "stella": [
+      "Stella Sora",
+      "스텔라 소라"
+    ],
+    "endfield": [
+      "Arknights: Endfield",
+      "명일방주: 엔드필드"
+    ]
+  },
+  "screen_rules": [
+    {
+      "game": "genshin",
+      "kind": "event",
+      "enabled": false,
+      "all_claimed_patterns": [
+        "모든 보상을 수령했습니다",
+        "보상을 모두 수령했습니다"
+      ],
+      "pending_patterns": [
+        "미수령 보상",
+        "수령 가능"
+      ]
+    },
+    {
+      "game": "genshin",
+      "kind": "task",
+      "task_name": "[원신] 일퀘",
+      "enabled": false,
+      "context_patterns": [
+        "일일 의뢰"
+      ],
+      "all_claimed_patterns": [
+        "오늘의 일일 의뢰 보상을 모두 수령했습니다"
+      ],
+      "pending_patterns": [
+        "보상 수령 가능"
+      ]
+    }
+  ],
+  "enable_android_bridge": true,
+  "hoyolab": {
+    "enabled": false,
+    "genshin_uid": "",
+    "interval_minutes": 15,
+    "daily_task_name": "[원신] 일퀘",
+    "uids": {
+      "genshin": "",
+      "hsr": "",
+      "zzz": ""
+    }
+  },
+  "schema_version": 6,
+  "account_data": {
+    "enabled": false,
+    "interval_minutes": 15,
+    "score_goal_counts_as_complete": true,
+    "wuthering": {
+      "enabled": false,
+      "role_id": "",
+      "server_id": "",
+      "asia_server_verified": false
+    },
+    "endfield": {
+      "enabled": false,
+      "role_id": "",
+      "server_id": "",
+      "asia_server_verified": false
+    },
+    "task_names": {
+      "genshin": "[원신] 일퀘",
+      "hsr": "[열차] 일퀘",
+      "zzz": "[젠존제] 일퀘",
+      "wuthering": "[명조] 일퀘",
+      "endfield": "[엔필] 일퀘",
+      "arknights": "[명방] 일퀘"
+    },
+    "arknights": {
+      "enabled": false,
+      "channel_uid": ""
+    },
+    "reset_hours_kst": {
+      "genshin": 5,
+      "hsr": 5,
+      "zzz": 5,
+      "wuthering": 5,
+      "arknights": 4
+    },
+    "reset_grace_minutes": 20,
+    "reset_times_kst": {
+      "genshin": "05:00",
+      "hsr": "05:00",
+      "zzz": "05:00",
+      "wuthering": "05:00",
+      "endfield": "05:00",
+      "limbus": "06:00",
+      "arknights": "04:00"
+    },
+    "custom_bindings": [],
+    "weekly_reset_weekdays": {
+      "limbus": 3
+    },
+    "game_lookup": {
+      "genshin": true,
+      "hsr": true,
+      "zzz": true,
+      "endfield": true,
+      "wuthering": false,
+      "arknights": false
+    }
+  },
+  "banner_sync": {
+    "enabled": true,
+    "section_name": "이벤트 / 기간 한정"
+  }
+}

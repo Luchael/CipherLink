@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "timezone": "Asia/Seoul",
+  "exclude_games": [
+    "colorsweeper"
+  ],
+  "games": {
+    "genshin": {
+      "name": "원신",
+      "prefix": "원신",
+      "label": "원신",
+      "daily_reset_hour_kst": 5,
+      "android_packages": [
+        "com.miHoYo.GenshinImpact",
+        "com.miHoYo.GI.samsung"
+      ]
+    },
+    "hsr": {
+      "name": "붕괴: 스타레일",
+      "prefix": "열차",
+      "label": "스타레일",
+      "daily_reset_hour_kst": 5,
+      "android_packages": [
+        "com.HoYoverse.hkrpgoversea",
+        "com.HoYoverse.hkrpgsamsung"
+      ]
+    },
+    "zzz": {
+      "name": "젠레스 존 제로",
+      "prefix": "젠존제",
+      "label": "젠레스존제로",
+      "daily_reset_hour_kst": 5,
+      "android_packages": [
+        "com.HoYoverse.Nap"
+      ]
+    },
+    "wuthering": {
+      "name": "명조: 워더링 웨이브",
+      "prefix": "명조",
+      "label": "명조:워더링웨이브",
+      "daily_reset_hour_kst": 5,
+      "android_packages": [
+        "com.kurogame.wutheringwaves.global",
+        "com.kurogame.wutheringwaves.samsung"
+      ]
+    },
+    "limbus": {
+      "name": "림버스 컴퍼니",
+      "prefix": "림컴",
+      "label": "림버스컴퍼니",
+      "daily_reset_hour_kst": 6,
+      "android_packages": [
+        "com.ProjectMoon.LimbusCompany"
+      ]
+    },
+    "stella": {
+      "name": "스텔라 소라",
+      "prefix": "스소",
+      "label": "스텔라소라",
+      "daily_reset_hour_kst": null,
+      "android_packages": []
+    },
+    "reverse1999": {
+      "name": "리버스: 1999",
+      "prefix": "립9",
+      "label": "리버스1999",
+      "daily_reset_hour_kst": null,
+      "android_packages": []
+    },
+    "arknights": {
+      "name": "명일방주",
+      "prefix": "명방",
+      "label": "명일방주",
+      "daily_reset_hour_kst": null,
+      "android_packages": [
+        "com.YoStarEN.Arknights"
+      ]
+    },
+    "endfield": {
+      "name": "명일방주: 엔드필드",
+      "prefix": "엔필",
+      "label": "명일방주:엔드필드",
+      "daily_reset_hour_kst": 5,
+      "android_packages": [
+        "com.gryphline.endfield.glx"
+      ]
+    }
+  },
+  "completion": {
+    "due_on_or_before_today_only": true,
+    "forbid_before_daily_reset": true,
+    "score_goal_counts_as_complete": true,
+    "no_unverified_completion": true
+  },
+  "banner": {
+    "auto_complete_after_end": true,
+    "use_todoist_due_date": false,
+    "marker": "GameTodo-Banner-ID: "
+  }
+}
