@@ -3,547 +3,343 @@ package com.gametodo.nativeapp
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.accessibility.AccessibilityManager
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
-import android.widget.Switch
-import android.widget.Spinner
-import android.widget.ArrayAdapter
-import android.widget.AdapterView
-import android.content.res.ColorStateList
+import android.widget.*
+import java.time.ZonedDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import java.util.concurrent.Executors
 
-/** PC와 독립 실행되는 안드로이드 설정·상태 앱. 메인에 UID·비밀 토큰을 노출하지 않는다. */
+/** Everyday app UI. Credentials and API diagnostics never appear in these views. */
 class MainActivity : Activity() {
     private val io = Executors.newSingleThreadExecutor()
     private var page = 0
-    private var pendingDiagnosticJson: String? = null
-    private val diagnosticSaveRequest = 9909
+    @Volatile private var working = false
+    private var statusText = "준비됐어요"
     private lateinit var content: LinearLayout
-    private lateinit var bottom: LinearLayout
-    private var statusText = "준비됨"
     private lateinit var statusView: TextView
-
-    private fun label(text: String, size: Float=15f, color:Int=UiKit.TEXT, bold:Boolean=false) =
+    private fun dp(n: Int) = UiKit.dp(this,n)
+    private fun label(text: String, size: Float=15f, color: Int=UiKit.TEXT, bold: Boolean=false) =
         UiKit.text(this,text,size,color,bold)
-    private fun rowTitle(text:String) { content.addView(label(text,19f,bold=true),UiKit.margin(this,10,10)) }
-    private fun addCard(title:String, desc:String, action:String?=null, cb:(()->Unit)?=null) {
+    private fun rowTitle(text: String) { content.addView(label(text,22f,bold=true),UiKit.margin(this,8,16)) }
+    private fun addCard(title: String, desc: String, action: String?=null, cb:(()->Unit)?=null) {
         val box=UiKit.column(this)
-        box.addView(label(title,16f,bold=true))
-        box.addView(label(desc,13f,UiKit.MUTED),UiKit.margin(this,6,2))
-        if(action!=null && cb!=null) box.addView(UiKit.button(this,action,false,cb),UiKit.margin(this,10,0))
+        box.addView(label(title,17f,bold=true))
+        if(desc.isNotBlank()) box.addView(label(desc,14f,UiKit.MUTED),UiKit.margin(this,7,2))
+        if(action!=null && cb!=null) box.addView(UiKit.button(this,action,true,cb),UiKit.margin(this,12,0))
         content.addView(box,UiKit.margin(this,0,12))
     }
-    private fun action(text:String, main:Boolean=false, cb:()->Unit) {
-        content.addView(UiKit.button(this,text,main,cb),UiKit.margin(this,0,9))
+    private fun action(text: String, primary: Boolean=false, cb:()->Unit) {
+        content.addView(UiKit.button(this,text,primary,cb),UiKit.margin(this,0,10))
     }
-    private fun push(message:String) {
-        runOnUiThread {
-            statusText=message
-            if(::statusView.isInitialized) statusView.text=message
-        }
-    }
-    private fun startJob(message:String, action:()->String) {
-        push(message)
+    private fun push(message: String) { runOnUiThread {
+        if(!isDestroyed) { statusText=message; if(::statusView.isInitialized) statusView.text=message }
+    } }
+    private fun startJob(message: String, job:()->String) {
+        if(working) { push("지금 작업을 마무리하고 있어요. 잠시만 기다려 주세요."); return }
+        working=true; push(message)
         io.execute {
-            try { push(action()) }
-            catch (e:Exception) {
-                // 키·쿠키·토큰이 예외 메시지에 섞이지 않도록 종류만 사용자에게 표시.
-                push("실행 오류 · ${SafeFailure.describe(e)}. 계정 상태와 연결을 확인하세요.")
-            }
+            try { push(job()) }
+            catch(e:Exception) { push("완료하지 못했어요 · ${SafeFailure.describe(e)}. 연결을 다시 시도해 주세요.") }
+            finally { working=false }
         }
     }
-    override fun onCreate(savedInstanceState:Bundle?) {
-        super.onCreate(savedInstanceState)
-        window.statusBarColor=UiKit.BG
-        window.navigationBarColor=UiKit.BG
-        page=savedInstanceState?.getInt("page") ?: 0
+    override fun onCreate(state: Bundle?) {
+        super.onCreate(state)
+        page=state?.getInt("page") ?: 0
+        window.statusBarColor=UiKit.BG; window.navigationBarColor=UiKit.CARD
+        window.decorView.systemUiVisibility=View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         render()
-        if (android.os.Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
-            !getPreferences(MODE_PRIVATE).getBoolean("completion_permission_asked", false)) {
-            getPreferences(MODE_PRIVATE).edit().putBoolean("completion_permission_asked", true).apply()
-            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 4210)
+        SyncWorker.restoreLegacy(this) { if(!isDestroyed) render() }
+        if(android.os.Build.VERSION.SDK_INT>=33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED &&
+            !getPreferences(MODE_PRIVATE).getBoolean("completion_permission_asked",false)) {
+            getPreferences(MODE_PRIVATE).edit().putBoolean("completion_permission_asked",true).apply()
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),4210)
         }
     }
-    override fun onSaveInstanceState(state:Bundle) {state.putInt("page",page);super.onSaveInstanceState(state)}
-    override fun onResume() { super.onResume(); if(::bottom.isInitialized) render() }
-    private fun accessible():Boolean {
-        val mgr=getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
-        return mgr.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
-            .any { it.resolveInfo.serviceInfo.packageName==packageName && it.resolveInfo.serviceInfo.name.endsWith("GameDetectionService") }
-    }
-    private fun connectedNames(slot:String):List<String> {
-        return try {loadRoles(SecureTokens(this),slot).map { it.nickname.ifBlank { "이름 미등록" } }.distinct()}
-        catch (_:Exception) { emptyList() }
-    }
+    override fun onSaveInstanceState(state: Bundle) { state.putInt("page",page); super.onSaveInstanceState(state) }
+    override fun onResume() { super.onResume(); if(::content.isInitialized) render() }
+    private fun accessible():Boolean = (getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager)
+        .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+        .any { it.resolveInfo.serviceInfo.packageName==packageName && it.resolveInfo.serviceInfo.name.endsWith("GameDetectionService") }
+    private fun roles(slot: String) = runCatching { loadRoles(SecureTokens(this),slot) }.getOrDefault(emptyList())
     private fun render() {
-        val root=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setBackgroundColor(UiKit.BG)}
-        root.setOnApplyWindowInsetsListener { view:View, insets:WindowInsets ->
+        val root=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setBackgroundColor(UiKit.BG) }
+        root.setOnApplyWindowInsetsListener { view,insets ->
             val safe=insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
-            view.setPadding(safe.left,safe.top,safe.right,safe.bottom)
-            insets
+            view.setPadding(safe.left,safe.top,safe.right,safe.bottom); insets
         }
-        val top=UiKit.column(this,UiKit.BG,18)
-        top.addView(label("사이퍼링크",26f,bold=true))
-        top.addView(label("게임 할 일을 더 가볍게",13f,UiKit.MUTED))
-        root.addView(top)
-        val scroll=ScrollView(this).apply {clipToPadding=false;isFillViewport=false}
-        content=LinearLayout(this).apply {
-            orientation=LinearLayout.VERTICAL
-            setPadding(UiKit.dp(this@MainActivity,18),0,UiKit.dp(this@MainActivity,18),UiKit.dp(this@MainActivity,28))
+        val header=LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL; setPadding(dp(20),dp(18),dp(20),dp(16)) }
+        header.addView(ImageView(this).apply { setImageDrawable(applicationInfo.loadIcon(packageManager)); contentDescription="사이퍼링크" },LinearLayout.LayoutParams(dp(42),dp(42)))
+        val heading=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(12),0,0,0) }
+        heading.addView(label("사이퍼링크",24f,bold=true)); heading.addView(label("게임 할 일, 한곳에서",13f,UiKit.MUTED))
+        header.addView(heading); root.addView(header)
+        val scroll=ScrollView(this).apply { isFillViewport=true; clipToPadding=false }
+        content=LinearLayout(this).apply { orientation=LinearLayout.VERTICAL; setPadding(dp(20),dp(4),dp(20),dp(24)) }
+        scroll.addView(content); root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
+        val nav=LinearLayout(this).apply { setBackgroundColor(UiKit.CARD); setPadding(dp(8),dp(8),dp(8),dp(8)) }
+        listOf("홈","계정","할 일","설정").forEachIndexed { i,name ->
+            nav.addView(UiKit.button(this,name,page==i) { page=i;render() },LinearLayout.LayoutParams(0,dp(50),1f).apply { setMargins(dp(3),0,dp(3),0) })
         }
-        scroll.addView(content)
-        root.addView(scroll, LinearLayout.LayoutParams(-1,0,1f))
-        bottom=LinearLayout(this).apply {
-            orientation=LinearLayout.HORIZONTAL
-            setBackgroundColor(UiKit.CARD)
-            setPadding(UiKit.dp(this@MainActivity,6),UiKit.dp(this@MainActivity,8),UiKit.dp(this@MainActivity,6),UiKit.dp(this@MainActivity,8))
-        }
-        arrayOf("⌂  홈","♙  계정","☑  할 일","⚙  설정").forEachIndexed { index,title ->
-            val b=UiKit.button(this,title,page==index) {page=index;render()}
-            b.textSize=12f
-            bottom.addView(b,LinearLayout.LayoutParams(0,UiKit.dp(this,48),1f).apply {
-                setMargins(UiKit.dp(this@MainActivity,2),0,UiKit.dp(this@MainActivity,2),0)
-            })
-        }
-        root.addView(bottom)
-        setContentView(root)
-        when(page) {0->home();1->accounts();2->tasks();else->settingsPage()}
-        statusView=label(statusText,12f,UiKit.MUTED)
-        content.addView(statusView,UiKit.margin(this,16,6))
+        root.addView(nav); setContentView(root)
+        when(page) { 0->home();1->accounts();2->tasks();else->settingsPage() }
+        statusView=label(statusText,13f,UiKit.MUTED).apply { setPadding(dp(4),dp(14),dp(4),0); accessibilityLiveRegion=View.ACCESSIBILITY_LIVE_REGION_POLITE }
+        content.addView(statusView)
     }
     private fun home() {
-        rowTitle("내 자동화")
-        val t=SecureTokens(this)
-        addCard("Todoist",if(t.load()!=null)"로그인 정보 저장됨 · 같은 Todoist 계정으로 동기화" else "연결이 필요해요",
-            "Todoist 계정 확인") {startJob("Todoist 확인 중…") {"Todoist 연결 성공 · 미완료 ${TodoistApi(applicationContext).tasks().size}개"}}
-        val count=connectedNames("hoyolab_roles").size
-        addCard("HoYoLAB",if(count>0)"연동된 캐릭터 ${count}개" else "연결된 캐릭터 없음", "계정 관리") {page=1;render()}
-        val enf=connectedNames("endfield_roles")
-        addCard("명일방주: 엔드필드",if(enf.isNotEmpty())enf.joinToString(" · ") else "캐릭터를 연결해 주세요", "SKPORT 계정 연결") {launch("endfield")}
-        addCard("게임 감지",if(accessible())"접근성 사용 중" else "접근성 권한이 꺼져 있어요",
-            if(accessible())"설정 확인" else "간편 설정하기") {accessibilityHelp()}
-        action("지금 동기화",true) {syncNow()}
+        val today=ZonedDateTime.now(ZoneId.of("Asia/Seoul")).format(DateTimeFormatter.ofPattern("M월 d일 EEEE",Locale.KOREAN))
+        rowTitle(today)
+        val connected=TodoistAuth(this).isConnected()
+        addCard("Todoist",if(connected) "연결 정보가 저장돼 있어요. 게임 할 일을 동기화할 수 있습니다." else "먼저 Todoist를 연결해 주세요. 비밀번호는 공식 사이트에서만 입력합니다.",
+            if(connected) "지금 동기화" else "Todoist 연결하기") { if(connected) syncNow() else connectTodoist() }
+        val count=roles("hoyolab_roles").size+roles("endfield_roles").size
+        addCard("게임 계정 ${count}개 연결됨","원신 · 스타레일 · 젠레스 존 제로 · 엔드필드", "게임 계정 관리") {page=1;render()}
+        val options=InteractionSettings.read(this)
+        addCard("게임 중 할 일",if(options.showTasks && accessible()) "게임 화면에 작은 아이콘이 표시됩니다. 아이콘을 눌러 할 일을 확인하세요."
+            else if(!options.showTasks) "화면 위 할 일 표시가 꺼져 있어요. 자동 동기화 설정은 그대로 유지됩니다."
+            else "게임 화면에 표시하려면 접근성 권한이 필요해요.","표시 설정") {page=3;render()}
+        action("게임 진행도 보기") {showGameDetails()}
     }
-    private fun launch(provider:String) {
-        startActivity(Intent(this,GameAccountLoginActivity::class.java).putExtra("provider",provider))
+    private fun connectTodoist() {
+        startJob("Todoist 연결을 시작합니다…") {
+            TodoistAuth(this).login {push(it)}
+            runOnUiThread { if(!isDestroyed) render() }
+            "Todoist에 연결했어요. 이제 게임 할 일을 동기화할 수 있습니다."
+        }
     }
+    private fun launch(provider: String) { startActivity(Intent(this,GameAccountLoginActivity::class.java).putExtra("provider",provider)) }
     private fun accounts() {
-        rowTitle("연결된 계정")
-        addCard("HoYoLAB","원신 · 붕괴: 스타레일 · 젠레스 존 제로", "로그인 및 캐릭터 선택") {launch("hoyolab")}
-        connectedNames("hoyolab_roles").forEach { name ->addCard(name,"연동된 HoYoLAB 캐릭터")}
-        addCard("SKPORT","명일방주: 엔드필드 · 글로벌 아시아", "로그인 및 캐릭터 선택") {launch("endfield")}
-        connectedNames("endfield_roles").forEach {name->addCard(name,"연동된 엔드필드 캐릭터")}
-        // 별도 팝업으로 위젯 수준의 실시간 메모를 확인한다.
-        // 미수령 보상, 에너지 등은 Todoist 자동 완료 점수와 구분해 표시한다.
-        action("게임별 상세 상태 보기",true) {
-            startJob("HoYoLAB·SKPORT의 실제 기록을 조회 중…") {
-                val vault=SecureTokens(applicationContext)
-                val fragments=mutableListOf<String>()
-                vault.loadNamed("hoyolab_cookie")?.let { cookie ->
-                    for(role in loadRoles(vault,"hoyolab_roles")) {
-                        try {
-                            val note=HoyoProvider.note(cookie,role)
-                            val entries=HoyoProvider.detailLines(role,note)
-                            val gauges = HoyoProvider.progressFromNote(role,note)
-                            val auto = gauges.joinToString("\n") { g ->
-                                "${g.metric}: ${g.current}/${g.maximum} · ${if (g.filled) "점수 충족" else "미달"}"
-                            }
-                            fragments.add("${role.nickname.ifBlank { role.game }} (${role.game})\n" +
-                                (if(entries.isEmpty()) "표시할 실시간 메모 필드가 없습니다." else entries.joinToString("\n")) +
-                                "\n\nTodoist 감지용 점수\n" + (auto.ifBlank { "주간 복합 조건 미확인 · 자동 체크 보류" }))
-                        } catch(e:Exception) {
-                            fragments.add("${role.game}: 조회 실패 — ${SafeFailure.describe(e)}")
-                        }
-                    }
-                }
-                // 엔드 콘텐츠: 별 수/시즌 시작·종료 시각 등 확인 가능한 기록만 표시.
-                // 기록 API가 없거나 만점 조건이 불확실한 콘텐츠는 자동 완료하지 않는다.
-                vault.loadNamed("hoyolab_cookie")?.let { cookie ->
-                    for (role in loadRoles(vault,"hoyolab_roles")) {
-                        val scan = EndgameRecords.probe(cookie,role)
-                        for (g in scan.gauges) fragments.add(
-                            "${role.nickname.ifBlank { role.game }} · ${g.metric}\n" +
-                            "${if (g.metric == "shiyu" && g.maximum == 4) "S등급 ${g.current}/4 (제4전선 1 + 제5전선 3)" else "달성 ${g.current}/${g.maximum}"}\n" +
-                            (if (g.periodKey != null) "회차 확인됨" else "회차 정보 없음 · 자동 완료 보류")
-                        )
-                        if (scan.diagnostics.isNotEmpty()) {
-                            fragments.add("${role.game} 엔드 콘텐츠 조회 진단\n" +
-                                scan.diagnostics.joinToString("\n"))
-                        }
-                    }
-                }
-                vault.loadNamed("endfield_token")?.let { token ->
-                    for(role in loadRoles(vault,"endfield_roles")) {
-                        try {
-                            val gs=EndfieldProvider.progress(token,role)
-                            fragments.add("엔드필드 (${role.nickname})\n"+
-                                if(gs.isEmpty())"조회 가능한 진행도 없음" else gs.joinToString("\n") { "${it.metric}: ${it.current}/${it.maximum}" })
-                        } catch(e:Exception) {fragments.add("엔드필드: 조회 실패 — ${SafeFailure.describe(e)}")}
-                    }
-                }
-                val appVersion = try { packageManager.getPackageInfo(packageName, 0).versionName ?: "알 수 없음" }
-                    catch (_: Exception) { "알 수 없음" }
-                val report = "CipherLink Android $appVersion · 엔드 콘텐츠 조회 방식 v0.10.1\n\n" +
-                    fragments.joinToString("\n\n").ifBlank { "먼저 게임 계정을 연결해 주세요." }
-                runOnUiThread {
-                    AlertDialog.Builder(this).setTitle("게임 계정 실시간 상태")
-                        .setMessage(report).setPositiveButton("닫기",null).show()
-                }
-                "상세 데이터 조회 완료"
-            }
-        }
-        // 테스트 중인 API는 15분 주기에서 호출하지 않는다.
-        // 버튼을 누른 경우에만 읽기 전용 요청하며, 결과로 Todoist를 변경하지 않는다.
-        action("미검증 엔드콘텐츠 API 시험 조회") {
-            startJob("엔드콘텐츠 시험 API를 확인하는 중…") {
-                val vault = SecureTokens(applicationContext)
-                val cookie = vault.loadNamed("hoyolab_cookie")
-                val roles = loadRoles(vault,"hoyolab_roles")
-                val report = if (cookie == null || roles.isEmpty()) "먼저 HoYoLAB 계정을 연결해 주세요." else
-                    roles.flatMap {role ->
-                        val result = EndgameRecords.probe(cookie,role,includeExperimental = true)
-                        listOf("${role.game}:\n" + result.diagnostics.joinToString("\n"))
-                    }.joinToString("\n\n")
-                runOnUiThread {
-                    AlertDialog.Builder(this).setTitle("API 시험 조회 (읽기 전용)")
-                        .setMessage(report).setPositiveButton("닫기",null).show()
-                }
-                "시험 조회 완료 · Todoist 변경 없음"
-            }
-        }
-        action("연결된 데이터 실제 조회") {
-            startJob("게임 진행도 확인 중…") {
-                val gauges=AccountSync(applicationContext).snapshots()
-                if(gauges.isEmpty()) "현재 조회 가능한 게임 점수가 없습니다." else
-                    gauges.joinToString("\n") {"${it.game}: ${it.current}/${it.maximum}"}
-            }
-        }
-        addCard("API 정밀 진단 (비식별)",
-            "본인이 누를 때만 전적 목록 및 이전 회차 시험 조회. 원본 쿠키·UID·닉네임 제외 JSON 저장", 
-            "진단 실행 후 파일 내보내기") { exportSafeApiDiagnostic() }
-        addCard("명조 글로벌 · 명일방주 한국/영어/일본 서버",
-            "명조 글로벌 개인 임무 API는 미확인. 명일방주 계정 내부 조회는 실제 게임 연결을 끊을 위험이 있어 자동 로그인·조회 비활성화. 기존 수동 Todoist 체크는 유지합니다.")
-        action("계정 연결 정보 초기화") {
-            AlertDialog.Builder(this).setTitle("게임 계정 연결 해제")
-                .setMessage("HoYoLAB·SKPORT의 저장된 연결만 해제합니다. Todoist 연결은 유지됩니다.")
-                .setNegativeButton("취소",null).setPositiveButton("해제") {_,_->
-                    val v=SecureTokens(this)
-                    listOf("hoyolab_cookie","hoyolab_roles","endfield_token","endfield_roles")
-                        .forEach(v::clearNamed)
-                    render()
-                }.show()
-        }
+        rowTitle("계정 연결")
+        addCard("Todoist",if(TodoistAuth(this).isConnected()) "연결 정보 저장됨 · 필요하면 다시 연결할 수 있어요." else "공식 브라우저 로그인으로 연결합니다.",
+            if(TodoistAuth(this).isConnected()) "Todoist 다시 연결" else "Todoist 연결하기") {connectTodoist()}
+        val hoyo=roles("hoyolab_roles")
+        addCard("HoYoLAB",if(hoyo.isEmpty()) "원신 · 스타레일 · 젠레스 존 제로의 Asia 계정을 연결합니다."
+            else "${hoyo.size}개 캐릭터 연결됨", "HoYoLAB 연결") {launch("hoyolab")}
+        val endfield=roles("endfield_roles")
+        addCard("명일방주: 엔드필드",if(endfield.isEmpty()) "SKPORT 공식 로그인으로 Asia 캐릭터를 연결합니다."
+            else "${endfield.size}개 캐릭터 연결됨", "SKPORT 연결") {launch("endfield")}
+        action("상세 진행도 보기",true) {showGameDetails()}
+        addCard("다른 게임도 할 일을 체크할 수 있어요","계정 진행도 연동을 지원하지 않는 게임은 게임 화면의 목록에서 직접 완료할 수 있습니다. 가챠 일정 수집과 진행도 연동은 별개입니다.")
     }
-    /** 계정 식별자/토큰을 포함하지 않는 진단 스키마. 자동 전송은 하지 않는다. */
-    private fun exportSafeApiDiagnostic() {
-        startJob("읽기 전용 API 응답 구조를 검사하는 중…") {
-            val report = SafeApiDiagnostics.collect(SecureTokens(applicationContext))
-            val count = report.optJSONArray("requests")?.length() ?: 0
-            pendingDiagnosticJson = report.toString(2)
-            runOnUiThread {
-                AlertDialog.Builder(this)
-                    .setTitle("비식별 API 진단 준비됨")
-                    .setMessage("전적 API ${count}개 요청의 필드 구조·배열 크기·점수·회차·오류 코드만 저장합니다.\n\n" +
-                        "계정 쿠키, 로그인 토큰, UID, 닉네임, 링크, 이미지 주소는 저장하지 않습니다.\n" +
-                        "날짜·점수 등 게임 진행도는 포함되므로 저장 후 파일 내용을 확인하고 공유하세요.\n\n" +
-                        "이 기능은 게임 조작 및 Todoist 자동 완료를 하지 않습니다.\n" +
-                        "이전 회차 조회는 별도 실험으로 기록되며 자동 판정에 사용하지 않습니다.")
-                    .setNegativeButton("취소") { _, _ -> pendingDiagnosticJson = null }
-                    .setPositiveButton("파일 저장") { _, _ ->
-                        val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                            addCategory(Intent.CATEGORY_OPENABLE)
-                            type = "application/json"
-                            putExtra(Intent.EXTRA_TITLE, "CipherLink_api_diagnostic_safe.json")
-                        }
-                        startActivityForResult(intent, diagnosticSaveRequest)
-                    }
-                    .show()
-            }
-            "비식별 진단 ${count}개 준비됨 · 파일 내보내기 선택 가능"
-        }
-    }
-
-    @Deprecated("Android SAF 결과 처리; 기존 Activity와 호환성 유지")
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode != diagnosticSaveRequest) return
-        val text = pendingDiagnosticJson
-        pendingDiagnosticJson = null
-        if (resultCode != Activity.RESULT_OK || data?.data == null || text == null) return
-        try {
-            contentResolver.openOutputStream(data.data!!, "w")?.use {
-                it.write(text.toByteArray(Charsets.UTF_8))
-            } ?: error("출력 스트림 생성 실패")
-            push("진단 JSON을 선택한 위치에 저장했습니다. 공유 전에 내용을 확인하세요.")
-        } catch (_: Exception) {
-            push("파일 저장 실패. 저장 권한/공간을 확인하세요.")
-        }
-    }
-
     private fun tasks() {
-        rowTitle("할 일 동기화")
-        action("완료 팝업 알림 설정") {
-            startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
-        }
-        addCard("휴대폰 중심으로 사용",TaskSupport.mobileGuidance)
-        addCard("계정 데이터 기반 완료","게임 초기화 전에는 체크하지 않고, 동일 회차는 한 번만 처리해요.")
-        addCard("가챠 자동 관리","시작일은 Todoist 날짜, 종료되면 앱에서 자동 완료해요.")
-        action("전체 작업 지원 현황 보기") { showTaskSupport() }
-        action("지금 동기화",true) {syncNow()}
-        action("자동 완료가 안 되는 이유 확인") {
-            startJob("서버 회차·완료 점수·Todoist 날짜를 점검하고 있어요…") {
-                val result=AccountSync(applicationContext).diagnose(TodoistApi(applicationContext))
-                runOnUiThread {
-                    AlertDialog.Builder(this).setTitle("자동 완료 진단")
-                        .setMessage(result.joinToString("\n\n"))
-                        .setPositiveButton("닫기",null).show()
-                }
-                "자동 완료 진단 완료"
-            }
+        rowTitle("할 일")
+        addCard("동기화","현재 회차의 목표 점수를 확인하면 바로 완료합니다. 이전 회차나 아직 시작하지 않은 할 일은 자동 완료하지 않아요.","지금 동기화") {syncNow()}
+        addCard("가챠 일정","현재 캐릭터 픽업만 기간 한정 작업으로 관리합니다. 진행도와 일반 할 일 목록에는 섞지 않습니다.")
+        action("지원하는 할 일 보기") {showTaskSupport()}
+        action("완료 알림 설정") {startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,packageName))}
+    }
+    private fun syncNow() {
+        if(!TodoistAuth(this).isConnected()) { connectTodoist(); return }
+        startJob("할 일을 동기화하고 있어요…") {
+            val api=TodoistApi(applicationContext)
+            val created=MobileBannerSync(applicationContext).run(api,force=true)
+            val completed=AccountSync(applicationContext).runOnce(api)
+            "동기화 완료 · 새 가챠 ${created}개 · 완료한 할 일 ${completed.size}개"
         }
     }
     private fun showTaskSupport() {
-        try {
-            val catalog = org.json.JSONObject(assets.open("todoist_bindings.json")
-                .bufferedReader(Charsets.UTF_8).use { it.readText() }).getJSONArray("tasks")
-            val entries = (0 until catalog.length()).map { index ->
-                val row = catalog.getJSONObject(index)
-                TaskSupport.Entry(row.getString("game"), row.getString("title"),
-                    row.getString("cadence"), row.optString("metric"),
-                    row.getString("status"), row.optString("note"))
-            }
-            val text = label(TaskSupport.report(entries),14f).apply {
-                setTextIsSelectable(true)
-                val pad = UiKit.dp(this@MainActivity,18)
-                setPadding(pad,pad,pad,pad)
-            }
-            val scroll = ScrollView(this).apply { addView(text) }
-            AlertDialog.Builder(this).setTitle("할 일 지원 현황")
-                .setView(scroll).setPositiveButton("닫기",null).show()
-        } catch (e: Exception) {
-            push("지원 현황을 표시하지 못했습니다 · ${SafeFailure.describe(e)}")
-        }
+        val rows=org.json.JSONObject(assets.open("todoist_bindings.json").bufferedReader().use {it.readText()}).getJSONArray("tasks")
+        val entries=(0 until rows.length()).map {i-> val r=rows.getJSONObject(i)
+            TaskSupport.Entry(r.getString("game"),r.getString("title"),r.getString("cadence"),r.optString("metric"),r.getString("status"),r.optString("note")) }
+        val text=label(TaskSupport.report(entries),15f).apply {setPadding(dp(20),dp(16),dp(20),dp(16))}
+        AlertDialog.Builder(this).setTitle("지원하는 할 일").setView(ScrollView(this).apply {addView(text)}).setPositiveButton("닫기",null).show()
     }
-
-    private fun syncNow() {
-        startJob("가챠 및 게임 진행도 동기화 중…") {
-            val todoist=TodoistApi(applicationContext)
-            val created=MobileBannerSync(applicationContext).run(todoist,force=true)
-            val updated=AccountSync(applicationContext).runOnce(todoist)
-            "새 가챠 ${created}개 · 완료 감지 ${updated.size}개"
-        }
+    private fun toggle(title: String, subtitle: String, checked: Boolean, onChange:(Boolean)->Unit) {
+        val box=UiKit.column(this)
+        val row=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL}
+        val copy=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
+        copy.addView(label(title,16f,bold=true));copy.addView(label(subtitle,13f,UiKit.MUTED),UiKit.margin(this,6,0))
+        row.addView(copy,LinearLayout.LayoutParams(0,-2,1f))
+        row.addView(Switch(this).apply {
+            isChecked=checked;showText=false;text="";contentDescription=title;minimumHeight=dp(48)
+            thumbTintList=ColorStateList.valueOf(android.graphics.Color.WHITE)
+            trackTintList=ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked),intArrayOf()),intArrayOf(UiKit.GREEN,0xFF8290A2.toInt()))
+            setOnCheckedChangeListener {_,value->onChange(value)}
+        },LinearLayout.LayoutParams(dp(58),dp(52)))
+        box.addView(row);content.addView(box,UiKit.margin(this,0,12))
     }
-    /**
-     * 설치된 앱의 이름과 패키지 ID를 직접 선택한다.
-     * 갤럭시 스토어/구글 플레이 버전의 실제 패키지명은 파일명과 다를 수 있다.
-     * 매핑은 사용자가 바꾸거나 삭제하기 전까지 SharedPreferences에 유지된다.
-     * QUERY_ALL_PACKAGES 권한 없이 Launcher 앱 목록만 읽는다.
-     */
-    private fun pickInstalledGame() {
-        val intent=Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-        val items=packageManager.queryIntentActivities(intent,0)
-            .map { item ->
-                item.loadLabel(packageManager).toString() to item.activityInfo.packageName
-            }.distinctBy { it.second }.sortedBy { it.first.lowercase() }
-        if(items.isEmpty()) {
-            AlertDialog.Builder(this).setMessage("실행 가능한 앱 목록을 찾지 못했습니다. 아래의 수동 패키지 등록을 이용해 주세요.")
-                .setPositiveButton("확인",null).show()
-            return
-        }
-        // 게임 이름에 익숙한 문자열만 우선 보여줘서 선택을 쉽게 한다.
-        val hint = Regex("원신|스타레일|Zenless|젠레스|명조|Wuthering|Arknights|명일방주|림버스|Limbus|Stella|스텔라|Reverse|리버스|Genshin|Honkai|Endfield",RegexOption.IGNORE_CASE)
-        val suggested=items.filter { hint.containsMatchIn(it.first) || GameRules.all(this).any {g -> it.second in g.packages} }
-        val present=if(suggested.isNotEmpty()) suggested else items
-        showAppList(present,items)
-    }
-
-    private fun showAppList(display:List<Pair<String,String>>,all:List<Pair<String,String>>) {
-        val lines=display.map { "${it.first}\n${it.second}" }.toTypedArray()
-        AlertDialog.Builder(this).setTitle("게임 앱 선택")
-            .setItems(lines) {_,pos -> selectGameForPackage(display[pos].second,display[pos].first) }
-            .setNeutralButton(if(display.size<all.size) "모든 앱 보기" else "닫기") {_,_->
-                if(display.size<all.size) showAppList(all,all)
-            }.setNegativeButton("취소",null).show()
-    }
-
-    private fun selectGameForPackage(pkg:String,appName:String) {
-        val games=GameRules.all(this).sortedBy {it.name}
-        AlertDialog.Builder(this).setTitle("$appName → 어떤 게임?")
-            .setItems(games.map { it.name }.toTypedArray()) { _,position ->
-                val existing=getSharedPreferences("gametodo",MODE_PRIVATE).getString("packages","").orEmpty()
-                val lines=existing.lines().filter { it.substringBefore('=') != pkg && it.contains('=') }
-                val next=(lines+"$pkg=${games[position].key}").joinToString("\n")
-                getSharedPreferences("gametodo",MODE_PRIVATE).edit().putString("packages",next).apply()
-                push("저장됨: $appName → ${games[position].name} · 실행 중이라면 게임을 다시 열어 주세요")
-            }.setNegativeButton("취소",null).show()
-    }
-
-    /** Android 설정 화면에서 사용하는 기본 슬라이드형 Switch + 간격 드롭다운. */
-    private fun addAutoCheckSettings() {
-        rowTitle("자동 확인")
-        val panel = UiKit.column(this)
-        val titleRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val titles = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        titles.addView(label("게임 계정 자동 확인", 16f, bold = true))
-        val state = label("상태 확인 중…", 13f, UiKit.MUTED)
-        titles.addView(state)
-        titleRow.addView(titles, LinearLayout.LayoutParams(0, -2, 1f))
-        val toggle = Switch(this).apply {
-            text = ""
-            showText = false
-            minWidth = UiKit.dp(this@MainActivity, 54)
-            minimumHeight = UiKit.dp(this@MainActivity, 48)
-            isEnabled = false
-            val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
-            thumbTintList = ColorStateList(states, intArrayOf(0xFFFFFFFF.toInt(), 0xFFE2E5EC.toInt()))
-            trackTintList = ColorStateList(states, intArrayOf(UiKit.GREEN, 0xFF667181.toInt()))
-            contentDescription = "게임 계정 자동 확인 켜기 또는 끄기"
-        }
-        titleRow.addView(toggle)
-        panel.addView(titleRow)
-        panel.addView(UiKit.spacer(this, 9))
-        panel.addView(label("확인 간격", 14f, UiKit.MUTED))
-        val minuteOptions = AutoCheckIntervals.minutes
-        val names = minuteOptions.map(AutoCheckIntervals::display)
-        val dropdown = Spinner(this).apply {
-            minimumHeight = UiKit.dp(this@MainActivity, 48)
-            adapter = ArrayAdapter(this@MainActivity,
-                android.R.layout.simple_spinner_item, names).also {
-                    it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-                }
-        }
-        dropdown.setSelection(minuteOptions.indexOf(SyncWorker.intervalMinutes(this)).coerceAtLeast(0))
-        dropdown.isEnabled = false
-        panel.addView(dropdown)
-        panel.addView(label("Android에서 백그라운드 확인은 정확한 시각을 보장하지 않습니다. " +
-            "끄면 주기 확인과 게임 실행 시 자동 계정 조회가 중지되며, 수동 동기화는 가능합니다.",
-            12f, UiKit.MUTED), UiKit.margin(this, 7, 0))
-        content.addView(panel, UiKit.margin(this, 0, 12))
-
-        fun updateStatus(enabled: Boolean) {
-            state.text = if (enabled) "● 켜짐 · ${AutoCheckIntervals.display(SyncWorker.intervalMinutes(this))}마다 확인" else "○ 꺼짐 · 자동 조회 중지"
-            state.setTextColor(if (enabled) UiKit.GREEN else UiKit.MUTED)
-        }
-        var firstSelect = true
-        dropdown.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                if (firstSelect) { firstSelect = false; return }
-                val minutes = minuteOptions[position]
-                SyncWorker.setInterval(this@MainActivity, minutes)
-                updateStatus(SyncWorker.isEnabled(this@MainActivity))
-                push("확인 간격: ${AutoCheckIntervals.display(minutes)}")
-            }
-        }
-        SyncWorker.restoreLegacy(this) { enabled ->
-            // 프로그램에서 초기 체크 상태를 바꿀 때 리스너가 실수로 작업을 예약하지 않도록 함.
-            toggle.setOnCheckedChangeListener(null)
-            toggle.isChecked = enabled
-            toggle.isEnabled = true
-            dropdown.isEnabled = true
-            toggle.setOnCheckedChangeListener { _, newValue ->
-                SyncWorker.setEnabled(this, newValue)
-                updateStatus(newValue)
-                push(if (newValue) "자동 확인 켜짐 (${AutoCheckIntervals.display(SyncWorker.intervalMinutes(this))} 간격)" else "자동 확인 꺼짐")
-            }
-            updateStatus(enabled)
-        }
-    }
-
-    /** 게임별 조회 토글. 미지원 게임은 ON을 선택해도 API 성공을 가장하지 않는다. */
-    private fun addGameLookupSettings() {
-        rowTitle("게임별 자동 조회")
-        for ((key, name) in GameLookupSettings.names) {
-            val supported = key in GameLookupSettings.implemented
-            val panel = UiKit.column(this)
-            val line = LinearLayout(this).apply { orientation=LinearLayout.HORIZONTAL; gravity=Gravity.CENTER_VERTICAL }
-            val copy = LinearLayout(this).apply { orientation=LinearLayout.VERTICAL }
-            copy.addView(label(name, 15f, bold=true))
-            copy.addView(label(if (supported) "계정 API 조회 및 Todoist 자동 판정"
-                else if (key=="arknights") "KR: 23:59 인증 조회는 게임 세션 충돌 위험 · Android 조회 어댑터 미연결"
-                else "글로벌: 일일 진행도 조회 API 미검증 (중국 서버 API 사용 안 함)",
-                12f, UiKit.MUTED))
-            line.addView(copy, LinearLayout.LayoutParams(0, -2, 1f))
-            val sw = Switch(this).apply {
-                showText=false; text=""; isChecked=GameLookupSettings.enabled(this@MainActivity,key)
-                isEnabled=supported
-                contentDescription="$name 자동 계정 조회 켜기 또는 끄기"
-            }
-            sw.setOnCheckedChangeListener { _, isOn ->
-                GameLookupSettings.setEnabled(this,key,isOn)
-                push("$name 계정 조회 ${if(isOn) "켜짐" else "꺼짐"}")
-            }
-            line.addView(sw)
-            panel.addView(line)
-            content.addView(panel,UiKit.margin(this,0,6))
-        }
-        addCard("명일방주 23:59 자동 조회", "조회 1회라도 게임을 강제 로그아웃시킬 수 있습니다. " +
-            "PC용 ArkPRTS 예약 조회는 별도 제공하며, Android는 안전한 단독 인증 경로가 아직 검증되지 않아 켤 수 없습니다.")
-    }
-
     private fun settingsPage() {
-        rowTitle("권한 및 설정")
-        addCard("게임 실행 자동 감지",if(accessible())"● 권한 허용됨" else "○ 권한이 필요합니다",
-            "접근성 설정 방법") {accessibilityHelp()}
-        addCard("게임 화면 위에 할 일 표시",
-            if (accessible()) "● 게임 감지 접근성 서비스로 표시 가능" else "○ 접근성 서비스를 먼저 켜 주세요",
-            "게임 감지 사용법") { accessibilityHelp() }
-        addAutoCheckSettings()
-        addGameLookupSettings()
-        addCard("배터리 사용량", "게임 실행 시 조회와 자동 확인 주기는 Android의 배터리 정책에 따라 지연될 수 있습니다.")
-        action("접근성 설정 바로 열기") {openAccessibility()}
-        rowTitle("고급 설정")
-        action("설치된 게임 앱 선택해서 연결") { pickInstalledGame() }
-        val prefs = getSharedPreferences("gametodo",MODE_PRIVATE)
-        val custom = prefs.getString("packages", "").orEmpty()
-        val recent = prefs.getString("last_detected_package", "없음")
-        val unknown = prefs.getString("last_overlay_candidate_package", "없음")
-        val hideReason = prefs.getString("last_overlay_hide_reason", "없음")
-        val ignored = prefs.getString("last_overlay_ignore_reason", "없음")
-        val overlayFailure = prefs.getString("last_overlay_show_failure", "없음")
-        val overlayVisible = prefs.getBoolean("overlay_visible", false)
-        addCard("플로팅 진단", "접근성: ${if(accessible()) "켜짐" else "꺼짐"} · 게임을 떠나면 자동 숨김\n앱이 표시한 상태: ${if(overlayVisible) "표시 요청 성공" else "표시하지 않음"} · 표시 실패: $overlayFailure\n감지된 게임 앱: $recent\n다른 앱 전환 후보: $unknown\n마지막 숨김 이유: $hideReason\n무시한 창: $ignored"+
-            (if(custom.isNotBlank()) "\n직접 등록: ${custom.lines().filter{it.contains('=')}.size}개" else ""),
-            "진단 새로고침") {render()}
-        action("추가 게임 패키지 직접 등록") {
-            val prefs=getSharedPreferences("gametodo",MODE_PRIVATE)
-            val field=EditText(this).apply {
-                setText(prefs.getString("packages",""));hint="패키지명=게임키 (줄 단위)";minLines=3
+        rowTitle("내 설정")
+        val options=InteractionSettings.read(this)
+        toggle("게임 화면에 할 일 표시","작은 게임 아이콘을 누르면 할 일 목록이 열립니다.",options.showTasks) {
+            InteractionSettings.set(this,InteractionSettings.SHOW,it);push(if(it) "할 일 표시를 켰어요" else "할 일 표시를 껐어요")
+        }
+        toggle("게임 실행 시 자동 확인","게임을 열 때 진행도를 조회합니다. 화면 표시와 별도로 동작합니다.",options.checkOnGameOpen) {
+            InteractionSettings.set(this,InteractionSettings.CHECK,it);push(if(it) "게임 실행 시 확인을 켰어요" else "게임 실행 시 확인을 껐어요")
+        }
+        addCard("게임 화면 접근 권한",if(accessible()) "허용됨 · 위 두 기능에서 함께 사용하는 Android 권한입니다. 각 기능은 위 스위치로 따로 끌 수 있어요."
+            else "게임을 구분하려면 접근성 권한이 필요해요. 화면을 캡처하거나 게임을 조작하지 않습니다.","권한 설정 열기") {accessibilityHelp()}
+        rowTitle("연결된 게임 앱")
+        val linked=installedApps().mapNotNull {app->GameRules.forPackage(this,app.second)?.let { Triple(app.first,app.second,it) }}
+        if(linked.isEmpty()) addCard("연결된 앱이 없어요","게임 앱을 선택하면 설치 스토어와 관계없이 사용할 수 있어요.")
+        linked.forEach { (name,pkg,game)->
+            val box=appRow(name,pkg,"연결됨 · ${game.name}",true)
+            box.setOnClickListener {selectGameForPackage(pkg,name)}
+            content.addView(box,UiKit.margin(this,0,8))
+        }
+        action("게임 앱 연결 · 변경",true) {pickInstalledGame()}
+        rowTitle("자동 동기화")
+        toggle("주기적으로 확인","PC가 꺼져 있어도 이 휴대폰에서 확인합니다.",SyncWorker.isEnabled(this)) {SyncWorker.setEnabled(this,it)}
+        val box=UiKit.column(this);box.addView(label("확인 간격",16f,bold=true))
+        val optionsMinutes=AutoCheckIntervals.minutes
+        val spinner=Spinner(this).apply {
+            minimumHeight=dp(52)
+            adapter=ArrayAdapter(this@MainActivity,android.R.layout.simple_spinner_dropdown_item,optionsMinutes.map(AutoCheckIntervals::display))
+            setSelection(optionsMinutes.indexOf(SyncWorker.intervalMinutes(this@MainActivity)).coerceAtLeast(0))
+        }
+        var initial=true
+        spinner.onItemSelectedListener=object:AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(p:AdapterView<*>?)=Unit
+            override fun onItemSelected(p:AdapterView<*>?,v:View?,position:Int,id:Long) {
+                if(initial) {initial=false;return}
+                SyncWorker.setInterval(this@MainActivity,optionsMinutes[position]);push("확인 간격을 저장했어요")
             }
-            AlertDialog.Builder(this).setTitle("게임 패키지 추가").setView(field)
-                .setNegativeButton("취소",null).setPositiveButton("저장") {_,_->
-                    prefs.edit().putString("packages",field.text.toString()).apply();push("패키지 설정 저장됨")
-                }.show()
+        }
+        box.addView(spinner);box.addView(label("배터리·네트워크 상태에 따라 확인 시각이 늦어질 수 있어요.",13f,UiKit.MUTED))
+        content.addView(box,UiKit.margin(this,0,12))
+        rowTitle("게임별 진행도 조회")
+        for((key,name) in GameLookupSettings.names.filterKeys {it in GameLookupSettings.implemented}) {
+            toggle(name,"연결된 계정의 진행도를 읽기 전용으로 확인합니다.",GameLookupSettings.enabled(this,key)) {GameLookupSettings.setEnabled(this,key,it)}
         }
         action("Todoist 연결 해제") {
-            AlertDialog.Builder(this).setTitle("Todoist 로그아웃")
-                .setNegativeButton("취소",null).setPositiveButton("로그아웃") {_,_->
-                    TodoistAuth(this).logout();render()
-                }.show()
+            AlertDialog.Builder(this).setTitle("Todoist 연결을 해제할까요?").setMessage("게임 계정과 기존 Todoist 작업은 그대로 유지됩니다.")
+                .setNegativeButton("취소",null).setPositiveButton("연결 해제") {_,_->TodoistAuth(this).logout();render()}.show()
         }
     }
-    private fun accessibilityHelp() {
-        AlertDialog.Builder(this).setTitle("게임 자동 감지 켜기")
-            .setMessage("① 접근성 설정 열기\n② 설치된 앱 또는 다운로드한 앱에서 사이퍼링크 게임 감지 선택\n③ 사용 허용을 켜기\n④ 사이퍼링크로 돌아와 상태 확인\n\n이 권한은 게임이 실행됐는지 알기 위해 사용해요. 화면 OCR은 기본 사용하지 않아요.")
-            .setNegativeButton("나중에",null).setPositiveButton("접근성 설정 열기") {_,_->openAccessibility()}.show()
+    private fun installedApps():List<Pair<String,String>> = packageManager
+        .queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER),0)
+        .map {it.loadLabel(packageManager).toString() to it.activityInfo.packageName}
+        .distinctBy {it.second}.sortedBy {it.first.lowercase(Locale.KOREAN)}
+    private fun appRow(name: String,pkg: String,subtitle: String,linked: Boolean):LinearLayout {
+        val box=UiKit.column(this,UiKit.CARD,14).apply {orientation=LinearLayout.HORIZONTAL;gravity=Gravity.CENTER_VERTICAL}
+        box.addView(ImageView(this).apply {setImageDrawable(runCatching {packageManager.getApplicationIcon(pkg)}.getOrNull());contentDescription=name},LinearLayout.LayoutParams(dp(42),dp(42)))
+        val copy=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setPadding(dp(12),0,dp(8),0)}
+        copy.addView(label(name,16f,bold=true));copy.addView(label(subtitle,13f,if(linked) UiKit.GREEN else UiKit.MUTED))
+        box.addView(copy,LinearLayout.LayoutParams(0,-2,1f));box.addView(label(if(linked) "✓" else "＋",22f,UiKit.GREEN,true))
+        return box
     }
-    private fun openAccessibility() {startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))}
+    private fun pickInstalledGame() {
+        val all=installedApps().filter {it.second!=packageName}
+        if(all.isEmpty()) {push("선택할 수 있는 앱이 없어요");return}
+        val recommended=all.filter {app->GameRules.forPackage(this,app.second)!=null || Regex("원신|스타레일|젠레스|명조|명일방주|림버스|스텔라|리버스|Genshin|Honkai|Zenless|Wuthering|Arknights|Limbus|Stella|Reverse|Endfield",RegexOption.IGNORE_CASE).containsMatchIn(app.first)}
+        showAppList(if(recommended.isEmpty()) all else recommended,all)
+    }
+    private fun showAppList(display:List<Pair<String,String>>,all:List<Pair<String,String>>) {
+        val adapter=object:BaseAdapter() {
+            override fun getCount()=display.size
+            override fun getItem(position:Int)=display[position]
+            override fun getItemId(position:Int)=position.toLong()
+            override fun getView(position:Int,old:View?,parent:ViewGroup?):View {
+                val (name,pkg)=display[position]; val game=GameRules.forPackage(this@MainActivity,pkg)
+                return appRow(name,pkg,game?.let {"현재 연결 · ${it.name}"} ?: "아직 연결하지 않은 앱",game!=null)
+            }
+        }
+        AlertDialog.Builder(this).setTitle("연결할 게임 앱 선택")
+            .setAdapter(adapter) {_,position->selectGameForPackage(display[position].second,display[position].first)}
+            .setNeutralButton(if(display.size<all.size) "모든 앱 보기" else "닫기") {_,_->if(display.size<all.size) showAppList(all,all)}
+            .setNegativeButton("취소",null).show()
+    }
+    private fun selectGameForPackage(pkg:String,appName:String) {
+        val games=GameRules.all(this).sortedBy {it.name}
+        val current=GameRules.forPackage(this,pkg)?.key
+        var selected=games.indexOfFirst {it.key==current}
+        val dialog=AlertDialog.Builder(this).setTitle("$appName 연결")
+            .setSingleChoiceItems(games.map {it.name}.toTypedArray(),selected) {d,index->
+                selected=index; (d as AlertDialog).getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=true
+            }
+            .setNegativeButton("취소",null).setNeutralButton("연결 해제") {_,_->
+                val prefs=getSharedPreferences("gametodo",MODE_PRIVATE)
+                val rows=prefs.getString("packages","").orEmpty().lines().filter {it.substringBefore('=')!=pkg && it.contains('=')}
+                // Explicitly suppress built-in package mapping too.
+                prefs.edit().putString("packages",(rows+"$pkg=none").joinToString("\n")).apply();render()
+            }.setPositiveButton("연결 저장",null).create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled=selected>=0
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                if(selected<0) {push("목록에서 게임을 먼저 선택해 주세요.");return@setOnClickListener}
+                val prefs=getSharedPreferences("gametodo",MODE_PRIVATE)
+                val rows=prefs.getString("packages","").orEmpty().lines().filter {it.substringBefore('=')!=pkg && it.contains('=')}
+                val game=games[selected];prefs.edit().putString("packages",(rows+"$pkg=${game.key}").joinToString("\n")).apply()
+                dialog.dismiss();render()
+                AlertDialog.Builder(this).setTitle("연결했어요").setMessage("$appName\n↓\n${game.name}\n\n다음 게임 실행부터 적용됩니다.").setPositiveButton("확인",null).show()
+            }
+        }
+        dialog.show()
+    }
+    private data class DetailGroup(val game:String,val name:String,val gauges:List<AccountGauge>,val memo:List<String>,val error:String="")
+    private fun showGameDetails() {
+        startJob("게임 진행도를 불러오고 있어요…") {
+            val vault=SecureTokens(applicationContext);val groups=mutableListOf<DetailGroup>()
+            val cookie=vault.loadNamed("hoyolab_cookie")
+            if(cookie!=null) for(role in loadRoles(vault,"hoyolab_roles")) {
+                try {
+                    val note=HoyoProvider.note(cookie,role)
+                    val gauges=HoyoProvider.progressFromNote(role,note)+EndgameRecords.fetch(cookie,role)
+                    groups+=DetailGroup(role.game,role.nickname,gauges,HoyoProvider.detailLines(role,note))
+                } catch(e:Exception) {groups+=DetailGroup(role.game,role.nickname,emptyList(),emptyList(),SafeFailure.describe(e))}
+            }
+            val token=vault.loadNamed("endfield_token")
+            if(token!=null) for(role in loadRoles(vault,"endfield_roles")) {
+                try {groups+=DetailGroup(role.game,role.nickname,EndfieldProvider.progress(token,role),emptyList())}
+                catch(e:Exception) {groups+=DetailGroup(role.game,role.nickname,emptyList(),emptyList(),SafeFailure.describe(e))}
+            }
+            runOnUiThread {if(!isDestroyed) renderDetails(groups)}
+            "진행도를 새로 불러왔어요"
+        }
+    }
+    private fun renderDetails(groups:List<DetailGroup>) {
+        val dialog=Dialog(this)
+        val root=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL;setBackgroundColor(UiKit.BG);setPadding(dp(20),dp(20),dp(20),dp(16))}
+        root.addView(label("게임 진행도",24f,bold=true));root.addView(label("방금 조회한 기록 · 한국 시간 기준",13f,UiKit.MUTED),UiKit.margin(this,5,16))
+        val scroll=ScrollView(this);val list=LinearLayout(this).apply {orientation=LinearLayout.VERTICAL}
+        scroll.addView(list);root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
+        if(groups.isEmpty()) list.addView(label("계정 화면에서 게임 계정을 먼저 연결해 주세요.",16f))
+        for(group in groups) {
+            val game=GameRules.all(this).firstOrNull {it.key==group.game}
+            val card=UiKit.column(this)
+            card.addView(label(game?.name ?: "게임 진행도",20f,bold=true))
+            if(group.name.isNotBlank()) card.addView(label(group.name,14f,UiKit.MUTED),UiKit.margin(this,4,10))
+            if(group.error.isNotBlank()) card.addView(label("기록을 가져오지 못했어요 · ${group.error}",14f,UiKit.MUTED))
+            for(g in group.gauges.distinctBy {it.metric}) {
+                val row=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL}
+                row.addView(label(ProgressPresentation.title(g.metric),15f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
+                row.addView(label(ProgressPresentation.value(g.current,g.maximum),17f,UiKit.BLUE,true))
+                card.addView(row,UiKit.margin(this,14,6))
+                card.addView(ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply {
+                    max=1000;progress=ProgressPresentation.fraction(g.current,g.maximum)
+                    progressTintList=ColorStateList.valueOf(UiKit.GREEN);progressBackgroundTintList=ColorStateList.valueOf(UiKit.PANEL)
+                },LinearLayout.LayoutParams(-1,dp(7)))
+                val period=if(g.metric !in setOf("daily","weekly","weekly_task","rogue_weekly")) {
+                    if(EndgameRecords.currentPeriod(g,System.currentTimeMillis())) " · 현재 회차" else " · 회차 확인 필요"
+                } else ""
+                card.addView(label(ProgressPresentation.state(g.current,g.maximum)+period,12f,UiKit.MUTED),UiKit.margin(this,5,4))
+            }
+            if(group.memo.isNotEmpty()) {
+                card.addView(label("실시간 메모",15f,bold=true),UiKit.margin(this,18,6))
+                group.memo.forEach {line->card.addView(label(line.replace(" true"," 예").replace(" false"," 아니오"),14f,UiKit.MUTED),UiKit.margin(this,3,3))}
+            }
+            if(group.gauges.isEmpty() && group.error.isBlank()) card.addView(label("조회할 수 있는 기록이 아직 없어요.",14f,UiKit.MUTED))
+            list.addView(card,UiKit.margin(this,0,14))
+        }
+        root.addView(UiKit.button(this,"닫기",true) {dialog.dismiss()},UiKit.margin(this,12,0))
+        dialog.setContentView(root);dialog.show()
+        dialog.window?.setLayout(-1,(resources.displayMetrics.heightPixels*0.91).toInt())
+    }
+    private fun accessibilityHelp() {
+        AlertDialog.Builder(this).setTitle("게임 화면 접근 허용")
+            .setMessage("접근성 → 설치된 앱 → 사이퍼링크 게임 감지에서 사용을 허용해 주세요.\n\n권한을 허용한 뒤 이 앱에서 화면 표시와 게임 실행 시 확인을 각각 켜고 끌 수 있어요.")
+            .setNegativeButton("나중에",null).setPositiveButton("설정 열기") {_,_->startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))}.show()
+    }
     override fun onDestroy() {io.shutdown();super.onDestroy()}
 }

@@ -16,12 +16,17 @@ class GameDetectionService : AccessibilityService() {
     private var pendingHide: Runnable? = null
     private var pendingPackage: String? = null
     private var activeGameKey: String? = null
+    private val settingsListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == InteractionSettings.SHOW && ::overlay.isInitialized && !InteractionSettings.read(this).showTasks)
+            overlay.setGame(null)
+    }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
         // v0.9.0의 플로팅 고정 플래그는 더 이상 다른 앱 표시를 허용하지 않는다.
         prefs().edit().remove("overlay_pinned").apply()
         overlay = FloatingOverlay(this)
+        prefs().registerOnSharedPreferenceChangeListener(settingsListener)
     }
 
     private fun prefs() = getSharedPreferences("gametodo", MODE_PRIVATE)
@@ -35,6 +40,8 @@ class GameDetectionService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         if (!::overlay.isInitialized) return
+        val options = InteractionSettings.read(this)
+        if (!options.shouldObserveWindows) { overlay.setGame(null); return }
         val pkg = event.packageName?.toString() ?: return
         val game = GameRules.forPackage(this, pkg)
         val decision = OverlayEventPolicy.evaluate(
@@ -44,14 +51,14 @@ class GameDetectionService : AccessibilityService() {
             OverlayEventPolicy.Kind.GAME -> {
                 cancelHide()
                 val target = game ?: return
-                overlay.setGame(target, pkg)
+                if (options.showTasks) overlay.setGame(target, pkg) else overlay.setGame(null)
                 activeGameKey = target.key
                 prefs().edit().putString("last_detected_package", pkg)
                     .putString("last_detected_game", target.key)
                     .putLong("last_game_event_time", System.currentTimeMillis()).apply()
                 // 사용자가 설정한 간격 안에 앱 전환을 반복해도 중복 조회하지 않는다.
                 val now = System.currentTimeMillis()
-                if (SyncWorker.isEnabled(this) &&
+                if (options.checkOnGameOpen && SyncWorker.isEnabled(this) &&
                     now - prefs().getLong("last_launch_sync", 0L) >=
                     SyncWorker.intervalMinutes(this).toLong() * 60L * 1000L) {
                     prefs().edit().putLong("last_launch_sync", now).apply()
@@ -96,6 +103,7 @@ class GameDetectionService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        prefs().unregisterOnSharedPreferenceChangeListener(settingsListener)
         cancelHide()
         if (::overlay.isInitialized) overlay.dispose()
         super.onDestroy()

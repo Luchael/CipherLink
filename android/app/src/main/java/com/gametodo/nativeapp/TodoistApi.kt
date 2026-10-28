@@ -37,7 +37,7 @@ object HttpApi {
     }
     /** OAuth 토큰 발급 API는 JSON 대신 application/x-www-form-urlencoded 전송을 사용한다. */
     fun tokenForm(params: Map<String, String>): String {
-        val conn = URL("https://api.todoist.com/oauth/access_token").openConnection() as HttpURLConnection
+        val conn = URL(TodoistOAuthPolicy.TOKEN).openConnection() as HttpURLConnection
         try {
             conn.requestMethod = "POST"
             conn.connectTimeout = 12000

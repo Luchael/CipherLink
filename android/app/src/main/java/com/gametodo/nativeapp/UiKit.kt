@@ -16,15 +16,15 @@ import android.widget.TextView
  * 모든 컨트롤 크기는 dp, 글자는 sp. 터치 영역 최소 48dp.
  */
 object UiKit {
-    const val BG = 0xFF10141D.toInt()
-    const val CARD = 0xFF202631.toInt()
-    const val PANEL = 0xFF2A3343.toInt()
-    const val TEXT = 0xFFF3F6FC.toInt()
-    const val MUTED = 0xFFACB9CD.toInt()
-    const val BLUE = 0xFF79C6F5.toInt()
-    const val ACCENT = 0xFF357BA3.toInt()
-    const val GREEN = 0xFF79D6AE.toInt()
-    const val YELLOW = 0xFFF7CE7A.toInt()
+    const val BG = 0xFFF3F5F8.toInt()
+    const val CARD = 0xFFFFFFFF.toInt()
+    const val PANEL = 0xFFE7EDF3.toInt()
+    const val TEXT = 0xFF172B42.toInt()
+    const val MUTED = 0xFF56677B.toInt()
+    const val BLUE = 0xFF1C637B.toInt()
+    const val ACCENT = 0xFF176C64.toInt()
+    const val GREEN = 0xFF176C64.toInt()
+    const val YELLOW = 0xFF9A6200.toInt()
 
     fun dp(c: Context, value: Int) = (c.resources.displayMetrics.density * value + .5f).toInt()
     fun bg(c: Context, color: Int, radius: Int = 18, stroke: Int? = null): GradientDrawable =
@@ -38,6 +38,7 @@ object UiKit {
             if (bold) setTypeface(null, Typeface.BOLD)
             gravity = Gravity.CENTER_VERTICAL
             includeFontPadding = true
+            setLineSpacing(0f,1.15f)
         }
     fun column(c: Context, color: Int = CARD, padding: Int = 16): LinearLayout =
         LinearLayout(c).apply {

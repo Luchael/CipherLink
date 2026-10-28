@@ -16,10 +16,15 @@ import webbrowser
 
 from .credentials import read_secret, save_secret
 
-REGISTER_URL = "https://api.todoist.com/oauth/register"
-AUTHORIZE_URL = "https://app.todoist.com/oauth/authorize"
-TOKEN_URL = "https://api.todoist.com/oauth/access_token"
-CALLBACK = "http://localhost:18766/callback"  # 로컬 개발 콜백. 외부 인터넷에 노출 금지.
+REGISTER_URL = "https://todoist.com/oauth/register"
+AUTHORIZE_URL = "https://todoist.com/oauth/authorize"
+TOKEN_URL = "https://todoist.com/oauth/access_token"
+CALLBACK = "http://127.0.0.1:18766/callback"  # 로컬 개발 콜백. 외부 인터넷에 노출 금지.
+
+
+def token_expiry(response, now=None):
+    seconds = response.get("expires_in")
+    return (time.time() if now is None else now) + int(seconds) if seconds is not None and int(seconds) > 0 else 0
 
 
 def _post(url, params, *, as_json=False):
@@ -43,7 +48,7 @@ def _save(config):
 def register_local_client():
     """사용자별 기기에서 자체 OAuth 앱 동적 등록. 개발자 키 직접 입력이 필요 없다."""
     settings = _stored() or {}
-    if settings.get("client_id"):
+    if settings.get("client_id") and settings.get("redirect_uri") == CALLBACK:
         return settings
     response = _post(REGISTER_URL, {
         "client_name": "CipherLink",
@@ -56,7 +61,7 @@ def register_local_client():
     settings = {"client_id": response["client_id"],
                 "client_secret": response.get("client_secret", ""),
                 "redirect_uri": CALLBACK}
-    _save(settings)
+    # Commit credentials only after browser authorization succeeds.
     return settings
 
 
@@ -124,7 +129,7 @@ def browser_login(*, timeout=180):
                               "redirect_uri": CALLBACK})
     config.update({"access_token": token["access_token"],
                    "refresh_token": token.get("refresh_token", config.get("refresh_token")),
-                   "expires_at": time.time() + int(token.get("expires_in", 3600))})
+                   "expires_at": token_expiry(token)})
     _save(config)
     return True
 
@@ -134,7 +139,7 @@ def get_oauth_token():
     config = _stored()
     if not config or not config.get("access_token"):
         return None
-    if time.time() < float(config.get("expires_at", 0)) - 120:
+    if not config.get("expires_at") or time.time() < float(config["expires_at"]) - 120:
         return config["access_token"]
     if not config.get("refresh_token"):
         # 구형 장기 토큰의 경우 실제 만료 전까지 사용
@@ -145,6 +150,6 @@ def get_oauth_token():
                                  "refresh_token": config["refresh_token"]})
     config["access_token"] = response["access_token"]
     config["refresh_token"] = response.get("refresh_token", config["refresh_token"])
-    config["expires_at"] = time.time() + int(response.get("expires_in", 3600))
+    config["expires_at"] = token_expiry(response)
     _save(config)
     return config["access_token"]

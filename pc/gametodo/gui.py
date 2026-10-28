@@ -137,9 +137,10 @@ class Desktop:
         self._page_names = [
             ("dashboard", "⌂  대시보드"),
             ("accounts", "◎  계정 연결"),
+            ("progress", "▤  게임 진행도"),
             ("sync", "↻  동기화"),
             ("settings", "⚙  설정"),
-            ("logs", "≡  진단 · 로그"),
+            ("logs", "≡  활동 기록"),
         ]
         tk.Label(side, text="메뉴", bg="#111E2D", fg="#788CA3",
                  font=("맑은 고딕", 9, "bold")).pack(anchor="w", padx=24, pady=(0, 8))
@@ -181,7 +182,7 @@ class Desktop:
                  font=("맑은 고딕", 10)).pack(side="left")
 
         self.page_contents = {}
-        for key in ("accounts", "settings"):
+        for key in ("accounts", "settings", "progress"):
             outer=self.pages[key]
             canvas=tk.Canvas(outer,bg=COLOR_BG,highlightthickness=0,bd=0)
             scrollbar=tk.Scrollbar(outer,orient="vertical",command=canvas.yview)
@@ -221,14 +222,15 @@ class Desktop:
         ]:
             card = self._card(account, name, desc)
             self._button(card, "공식 계정 연결", command, True).pack(anchor="w", pady=(7, 1))
-        card = self._card(account, "연결 점검", "저장된 인증 정보와 실제 API 결과를 구분해 확인합니다.")
-        row = tk.Frame(card, bg=COLOR_CARD); row.pack(anchor="w", pady=5)
-        for label, fn in [("Todoist 검사",self._verify_todoist),
-                          ("엔드필드 검사",self._check_endfield_login),
-                          ("계정 상태",self._show_provider_status)]:
-            self._button(row,label,fn).pack(side="left",padx=(0,8))
-        row2 = tk.Frame(card,bg=COLOR_CARD); row2.pack(anchor="w",pady=5)
-        self._draw_login_tools(row2)
+        card = self._card(account, "게임 진행도", "연결한 계정의 일일·주간·엔드 콘텐츠 진행도를 카드로 확인합니다.")
+        self._button(card, "상세 진행도 보기", self._load_progress, True).pack(anchor="w",pady=7)
+
+        progress = self.page_contents["progress"]
+        self._page_intro(progress, "점수와 목표를 한눈에 확인하세요. 조회만 하며 Todoist를 변경하지 않습니다.")
+        self._button(progress, "진행도 새로고침", self._load_progress, True).pack(anchor="w",padx=4,pady=(0,15))
+        self.progress_body = tk.Frame(progress,bg=COLOR_BG)
+        self.progress_body.pack(fill="both",expand=True)
+        self._label(self.progress_body,"게임 계정을 연결한 뒤 새로고침을 눌러주세요.",12).pack(anchor="w",padx=8,pady=15)
 
         sync = self.pages["sync"]
         self._page_intro(sync, "일반 이벤트는 제외하고 현재 캐릭터 픽업만 관리합니다.")
@@ -265,12 +267,7 @@ class Desktop:
         self._button(card,"시작 프로그램 등록",self._enable_windows_startup).pack(anchor="w",pady=7)
 
         logpage=self.pages["logs"]
-        self._page_intro(logpage,"오류 진단에는 토큰·쿠키 원문을 표시하지 않습니다.")
-        card=self._card(logpage,"연결 테스트","로그인 문제는 오류가 발생한 단계를 먼저 확인하세요.")
-        self._button(card,"계정 연결 상태",self._show_provider_status).pack(side="left",padx=(0,10),pady=5)
-        self._button(card,"엔드필드 진단",self._check_endfield_login).pack(side="left",pady=5)
-        card=self._card(logpage,"할 일 지원 현황","일일·주간·월간·N일 주기의 자동 감지 조건과 수동 확인 항목을 확인합니다.")
-        self._button(card,"전체 작업 지원 현황 보기",self._show_support_status).pack(anchor="w",pady=5)
+        self._page_intro(logpage,"동기화 결과와 연결 상태를 확인하세요. 인증정보는 표시하지 않습니다.")
         logs=tk.Frame(logpage,bg=COLOR_CARD,padx=17,pady=14)
         logs.pack(fill="both",expand=True,pady=(9,0),padx=3)
         self._label(logs,"실행 기록",13,COLOR_TEXT,True).pack(anchor="w",pady=(0,8))
@@ -300,7 +297,7 @@ class Desktop:
 
     def _show_page(self,key):
         names={"dashboard":"대시보드","accounts":"계정 연결","sync":"동기화",
-               "settings":"설정","logs":"진단 · 로그"}
+               "settings":"설정","logs":"활동 기록","progress":"게임 진행도"}
         page=self.pages.get(key)
         if not page:return
         page.tkraise()
@@ -315,9 +312,9 @@ class Desktop:
         todoist = bool(_stored() and _stored().get("access_token")) or bool(read_secret("todoist"))
         hoyo = bool(read_secret("hoyolab"))
         skport = bool(read_secret("skport"))
-        self.auth_label.config(text=("Todoist: " + ("API 연결 검증됨" if self.confirmed_todoist else "인증값 저장됨 / 검증 필요" if todoist else "로그인 필요") +
-                                     "     HoYoLAB: " + ("쿠키 보관됨" if hoyo else "로그인 필요") +
-                                     "     SKPORT: " + ("토큰 보관됨" if skport else "로그인 필요")))
+        self.auth_label.config(text=("Todoist: " + ("연결됨" if self.confirmed_todoist else "연결 정보 저장됨" if todoist else "로그인 필요") +
+                                     "     HoYoLAB: " + ("연결 정보 저장됨" if hoyo else "로그인 필요") +
+                                     "     SKPORT: " + ("연결 정보 저장됨" if skport else "로그인 필요")))
 
     def _print(self, message):
         self.logs.configure(state="normal")
@@ -350,6 +347,8 @@ class Desktop:
                     self._print(str(data))
                     if not self.auto_started:
                         self._auto_start()
+                elif kind == "progress_data":
+                    self._render_progress(data)
                 elif kind == "section_list":
                     self._render_section_picker(data)
                 elif kind == "skport_role_list":
@@ -601,6 +600,43 @@ class Desktop:
         self._button(win, "선택한 위치에 저장", save, True).pack(pady=12)
         win.transient(self.root)
         win.grab_set()
+
+    def _load_progress(self):
+        self._show_page("progress")
+        def load():
+            from .account_watch import active_games
+            from .progress_view import status_rows
+            from .games import GAMES
+            cfg = load_settings(str(self.cfg))
+            groups = []
+            for game, reader in active_games(cfg):
+                try:
+                    _, state = reader()
+                    groups.append((GAMES[game].name, status_rows(state), ""))
+                except Exception as exc:
+                    groups.append((GAMES[game].name, [], user_error(exc)))
+            self.messages.put(("progress_data",groups))
+            return "게임 진행도를 새로 불러왔어요."
+        self._worker("진행도를 불러오고 있어요…",load)
+
+    def _render_progress(self, groups):
+        for child in self.progress_body.winfo_children():
+            child.destroy()
+        if not groups:
+            self._label(self.progress_body,"조회할 계정이 없어요. 계정 연결과 게임별 조회 설정을 확인해 주세요.",12).pack(anchor="w",padx=8,pady=15)
+        style = ttk.Style()
+        style.configure("CipherLink.Horizontal.TProgressbar",background=COLOR_ACCENT,troughcolor="#233447",thickness=8)
+        for name, rows, error in groups:
+            card = self._card(self.progress_body,name,"방금 조회한 게임 기록")
+            if error:
+                self._label(card,"기록을 가져오지 못했어요. " + error,11,COLOR_MUTED).pack(anchor="w",pady=8)
+            for item in rows:
+                row = tk.Frame(card,bg=COLOR_CARD)
+                row.pack(fill="x",pady=(12,5))
+                self._label(row,item.title,12,COLOR_TEXT,True).pack(side="left")
+                self._label(row,item.value,14,COLOR_ACCENT,True).pack(side="right")
+                ttk.Progressbar(card,maximum=100,value=item.percent,style="CipherLink.Horizontal.TProgressbar").pack(fill="x",pady=(0,5))
+                self._label(card,item.state,10,COLOR_MUTED).pack(anchor="w")
 
     def _show_provider_status(self):
         cfg = load_settings(str(self.cfg))
