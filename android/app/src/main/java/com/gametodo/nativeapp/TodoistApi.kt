@@ -55,11 +55,6 @@ object HttpApi {
     }
 }
 
-data class TodoTask(val id: String, val title: String, val labels: List<String>,
-                    val description: String, val dueDate: String?,
-                    val sectionId: String = "", val projectId: String = "",
-                    val dueString: String? = null, val isRecurring: Boolean = false)
-
 /** 공식 Todoist API v1 연동. Termux·로컬 브리지·PC 서버가 필요 없다. */
 class TodoistApi(private val context: Context) {
     private val auth = TodoistAuth(context)
@@ -82,7 +77,8 @@ class TodoistApi(private val context: Context) {
                     task.optString("description"), task.optJSONObject("due")?.optString("date"),
                     task.optString("section_id"),task.optString("project_id"),
                     task.optJSONObject("due")?.optString("string"),
-                    task.optJSONObject("due")?.let { it.optBoolean("is_recurring", it.optBoolean("recurring", false)) } ?: false)
+                    task.optJSONObject("due")?.let { it.optBoolean("is_recurring", it.optBoolean("recurring", false)) } ?: false,
+                    task.optString("parent_id").takeUnless { it.isBlank() || it == "null" })
             }
             cursor = result.optString("next_cursor").takeIf { it.isNotBlank() && it != "null" }
             if (cursor == null) return output
@@ -107,7 +103,8 @@ class TodoistApi(private val context: Context) {
             raw.optString("description"), raw.optJSONObject("due")?.optString("date"),
             raw.optString("section_id"), raw.optString("project_id"),
             raw.optJSONObject("due")?.optString("string"),
-            raw.optJSONObject("due")?.let { it.optBoolean("is_recurring", it.optBoolean("recurring", false)) } ?: false)
+            raw.optJSONObject("due")?.let { it.optBoolean("is_recurring", it.optBoolean("recurring", false)) } ?: false,
+            raw.optString("parent_id").takeUnless { it.isBlank() || it == "null" })
     }
 
     /** 이벤트 제외와 주기 섹션 정보는 한 번의 요청으로 가져와 캐시에 함께 저장한다. */

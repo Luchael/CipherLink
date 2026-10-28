@@ -11,6 +11,7 @@
 **/*.pyc
 **/.venv/
 **/.gradle/
+**/.kotlin/
 **/.idea/
 **/local.properties
 **/build/

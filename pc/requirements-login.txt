@@ -1,7 +1,7 @@
 # 계정 로그인 및 게임 상태 연동용 선택 패키지.
 # 공식 로그인 페이지를 사용하며 인증값은 로컬 사용자 저장소에만 보관합니다.
 # 실행: python -m pip install -r requirements-login.txt
-genshin[cookies,rsa]
+genshin[cookies]>=1.7.31,<2
 browser-cookie3
 arkprts
 # 내장 로그인 창: Windows에 설치된 Edge 사용, 브라우저 별도 설치 불필요

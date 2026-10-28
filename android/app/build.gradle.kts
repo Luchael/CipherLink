@@ -6,8 +6,8 @@ android {
         applicationId = "com.gametodo.nativeapp"
         minSdk = 30
         targetSdk = 35
-        versionCode = 24
-        versionName = "0.10.3-alpha"
+        versionCode = 25
+        versionName = "0.10.4-alpha"
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }

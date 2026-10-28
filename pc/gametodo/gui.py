@@ -228,8 +228,7 @@ class Desktop:
                           ("계정 상태",self._show_provider_status)]:
             self._button(row,label,fn).pack(side="left",padx=(0,8))
         row2 = tk.Frame(card,bg=COLOR_CARD); row2.pack(anchor="w",pady=5)
-        self._button(row2,"기존 HoYoLAB 브라우저 가져오기",self._hoyo_import).pack(side="left",padx=(0,8))
-        self._button(row2,"로그인 모듈 설치",self._install_login_modules).pack(side="left")
+        self._draw_login_tools(row2)
 
         sync = self.pages["sync"]
         self._page_intro(sync, "일반 이벤트는 제외하고 현재 캐릭터 픽업만 관리합니다.")
@@ -241,7 +240,7 @@ class Desktop:
         card = self._card(sync,"자동 확인","자동 확인을 끄더라도 수동 동기화는 사용할 수 있습니다.")
         self._button(card,"자동 확인 켜기",self._auto_start).pack(side="left",padx=(0,10),pady=8)
         self._button(card,"자동 확인 끄기",self._auto_stop).pack(side="left",pady=8)
-        self._label(sync,"명조 글로벌 가챠는 공식/검증된 Asia 일정 출처가 확인되지 않아 등록을 건너뜁니다.",
+        self._label(sync,"명조 가챠는 한국어·KST 공개 일정 확인에 실패하면 등록을 보류합니다. 실제 일정 응답 검증은 아직 완료되지 않았습니다.",
                     10,COLOR_MUTED).pack(anchor="w",padx=14,pady=8)
 
         settings_page=self.page_contents["settings"]
@@ -270,6 +269,8 @@ class Desktop:
         card=self._card(logpage,"연결 테스트","로그인 문제는 오류가 발생한 단계를 먼저 확인하세요.")
         self._button(card,"계정 연결 상태",self._show_provider_status).pack(side="left",padx=(0,10),pady=5)
         self._button(card,"엔드필드 진단",self._check_endfield_login).pack(side="left",pady=5)
+        card=self._card(logpage,"할 일 지원 현황","일일·주간·월간·N일 주기의 자동 감지 조건과 수동 확인 항목을 확인합니다.")
+        self._button(card,"전체 작업 지원 현황 보기",self._show_support_status).pack(anchor="w",pady=5)
         logs=tk.Frame(logpage,bg=COLOR_CARD,padx=17,pady=14)
         logs.pack(fill="both",expand=True,pady=(9,0),padx=3)
         self._label(logs,"실행 기록",13,COLOR_TEXT,True).pack(anchor="w",pady=(0,8))
@@ -279,6 +280,11 @@ class Desktop:
         self.logs.insert("end","• 계정 연결 후 '지금 동기화'를 누르세요.\n")
         self.logs.configure(state="disabled")
         self._show_page("dashboard")
+
+    def _show_support_status(self):
+        from .support_catalog import format_support_catalog
+        self._show_page('logs')
+        self._print(format_support_catalog())
 
     def _page_intro(self,page,txt):
         tk.Label(page,text=txt,bg=COLOR_BG,fg=COLOR_MUTED,
@@ -441,7 +447,7 @@ class Desktop:
         dlg.protocol("WM_DELETE_WINDOW", lambda: finish(None))
 
     def _check_endfield_login(self):
-        """읽기 전용 계정 진단. 저장된 토큰 원문·UID 전체를 로그에 출력하지 않는다."""
+        """읽기 전용 계정 진단. 닉네임·UID·토큰을 로그에 출력하지 않는다."""
         def check():
             token = read_secret("skport")
             if not token:
@@ -452,8 +458,7 @@ class Desktop:
             roles = list_asia_endfield_roles(binding)
             if not roles:
                 return "SKPORT 인증 응답은 받았지만 아시아 서버 바인딩 캐릭터가 없습니다."
-            return "SKPORT 아시아 캐릭터 " + str(len(roles)) + "개: " + ", ".join(
-                f"{r['nickname']} (…{r['role_id'][-4:]})" for r in roles)
+            return "SKPORT 인증 및 아시아 캐릭터 바인딩 확인: " + str(len(roles)) + "개"
         self._worker("SKPORT 계정 읽기 전용 진단",check)
 
     def _wuthering_global_info(self):
@@ -517,11 +522,18 @@ class Desktop:
             return "명일방주 한국 서버 Yostar 로그인 완료"
         self._worker("명일방주 이메일 인증", connect)
 
+    def _draw_login_tools(self, parent):
+        """배포 EXE의 사용자는 개발용 패키지 설치 작업을 하지 않는다."""
+        import sys
+        self._button(parent,"기존 HoYoLAB 브라우저 가져오기",self._hoyo_import).pack(side="left",padx=(0,8))
+        if not getattr(sys, "frozen", False):
+            self._button(parent,"로그인 모듈 설치",self._install_login_modules).pack(side="left")
+
     def _install_login_modules(self):
         """사용자 클릭 시에만 pip 실행. 임의 패키지를 자동 설치하지 않는다."""
         import sys
         if getattr(sys, "frozen", False):
-            self._print("EXE는 로그인 라이브러리가 빌드에 포함되어야 합니다. 소스 설치판에서 사용하세요.")
+            self._print("로그인 기능은 EXE에 포함됩니다. 기능이 누락되었다면 최신 배포판 CipherLink.exe로 교체해 주세요. 기존 계정 설정은 보존됩니다.")
             return
         if not messagebox.askyesno("게임 로그인 기능 설치", "계정 연결 라이브러리(genshin.py, browser-cookie3, arkprts, playwright)를 설치할까요?", parent=self.root):
             return

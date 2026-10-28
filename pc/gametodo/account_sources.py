@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 
 from .credentials import read_secret
 from .http_client import HttpClient
+from .hoyo_client import close_hoyo_client
 from .live_data import (genshin_status, hsr_status, zzz_status,
                         wuthering_status, endfield_status)
 
@@ -31,7 +32,7 @@ async def _read_hoyolab_async(uid, cookie, game):
         endgame, errors = await endgame_fetch(client, uid, game)
         return notes, endgame, errors
     finally:
-        await client.close()
+        await close_hoyo_client(client)
 
 
 def _asia_uid(game, uid):

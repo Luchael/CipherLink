@@ -17,6 +17,7 @@ import webbrowser
 
 from .credentials import save_secret, read_secret
 from .settings import load_settings
+from .hoyo_client import close_hoyo_client, hoyolab_ds_headers, hoyolab_token_ready
 
 
 PROVIDERS = {
@@ -50,46 +51,74 @@ def _hoyo_cookie_dict(cookie):
             for k, v in [item.split('=', 1)]}
 
 
-def _direct_hoyolab_roles(cookie, http=None):
-    """Read-only global account fallback for genshin.py versions/endpoint changes.
+def _direct_hoyolab_roles(cookie, http=None, notify=None):
+    """Read-only role fallback with the credential family each API expects.
 
-    Results never include secret cookie. No claiming, password requests or game login.
+    The public genshin.py get_game_accounts uses the ltoken binding API; the
+    separate account CookieToken API requires cookie_token, not merely ltoken.
     """
     from urllib.parse import urlencode
     from types import SimpleNamespace
     from .http_client import HttpClient
     http = http or HttpClient(timeout=10)
-    from .embedded_login import _complete_hoyo_auth
-    if not _complete_hoyo_auth(_hoyo_cookie_dict(cookie)):
+    from .login_diagnostics import LoginApiError, login_request
+    cookies = _hoyo_cookie_dict(cookie)
+    ltoken_ready = hoyolab_token_ready(cookies, 'ltoken')
+    cookie_token_ready = hoyolab_token_ready(cookies, 'cookie_token')
+    if not (ltoken_ready or cookie_token_ready):
         raise ValueError('HoYoLAB 인증 쿠키/계정 ID 조합 부족')
-    url = 'https://api-account-os.hoyolab.com/account/binding/api/getUserGameRolesByCookieToken'
     headers = {'Cookie': cookie, 'Origin': 'https://www.hoyolab.com',
                'Referer': 'https://www.hoyolab.com/', 'Accept':'application/json',
                'x-rpc-client_type': '5', 'x-rpc-language': 'ko-kr'}
     result = []
     errors = []
+    if ltoken_ready:
+        try:
+            ltoken_headers = dict(headers)
+            ltoken_headers.update(hoyolab_ds_headers())
+            rsp = login_request(http, 'hoyolab_accounts',
+                'https://api-os-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie',
+                headers=ltoken_headers, notify=notify)
+            if (not isinstance(rsp, dict) or type(rsp.get('retcode')) is not int
+                    or rsp['retcode'] != 0 or not isinstance(rsp.get('data'), dict)
+                    or not isinstance(rsp['data'].get('list'), list)):
+                raise LoginApiError('hoyolab_accounts', response=rsp)
+            return [SimpleNamespace(game_biz=row.get('game_biz') or '',
+                        uid=str(row.get('game_uid') or row.get('uid') or ''),
+                        region=str(row.get('region') or ''))
+                    for row in rsp['data']['list'] if isinstance(row, dict)]
+        except Exception as exc:
+            errors.append(exc if isinstance(exc, LoginApiError)
+                          else LoginApiError('hoyolab_accounts', exc=exc))
+            if not cookie_token_ready:
+                raise errors[-1] from None
+    url = 'https://api-account-os.hoyolab.com/account/binding/api/getUserGameRolesByCookieToken'
+    operations = {'hk4e_global': 'hoyolab_roles_genshin',
+                  'hkrpg_global': 'hoyolab_roles_hsr', 'nap_global': 'hoyolab_roles_zzz'}
     for biz in ('hk4e_global', 'hkrpg_global', 'nap_global'):
         try:
-            rsp = http.request(url + '?' + urlencode({'game_biz': biz}), headers=headers)
-            if not isinstance(rsp, dict) or rsp.get('retcode', 0) != 0:
-                errors.append(f'{biz}:retcode_{str(rsp.get("retcode"))[:12]}')
-                continue
-            data = rsp.get('data') or {}
-            rows = data.get('list', []) if isinstance(data, dict) else []
+            rsp = login_request(http, operations[biz],
+                url + '?' + urlencode({'game_biz': biz}), headers=headers, notify=notify)
+            if (not isinstance(rsp, dict) or type(rsp.get('retcode')) is not int
+                    or rsp['retcode'] != 0 or not isinstance(rsp.get('data'), dict)
+                    or not isinstance(rsp['data'].get('list'), list)):
+                raise LoginApiError(operations[biz], response=rsp)
+            rows = rsp['data']['list']
             for row in rows:
                 if not isinstance(row, dict):
                     continue
                 result.append(SimpleNamespace(game_biz=row.get('game_biz') or biz,
                     uid=str(row.get('game_uid') or row.get('uid') or ''),
                     region=str(row.get('region') or '')))
-        except Exception:
-            errors.append(f'{biz}:request_error')
+        except Exception as exc:
+            errors.append(exc if isinstance(exc, LoginApiError)
+                          else LoginApiError(operations[biz], exc=exc))
     if not result and errors:
-        raise RuntimeError('HoYoLAB 계정 API 실패 (' + ', '.join(errors) + ')')
+        raise errors[-1] from None
     return result
 
 
-async def _discover_hoyolab_accounts(cookie):
+async def _discover_hoyolab_accounts(cookie, notify=None):
     """Prefer genshin.py; fall back to verified global read-only role API."""
     try:
         import genshin
@@ -98,12 +127,17 @@ async def _discover_hoyolab_accounts(cookie):
         try:
             accounts = await client.get_game_accounts()
         finally:
-            await client.close()
-        if accounts and (choose_hoyolab_uids(accounts)[0] or choose_hoyolab_uids(accounts)[1]):
+            await close_hoyo_client(client)
+        # A valid empty/non-Asia list is an account-selection outcome, not an
+        # auth error. Do not turn it into a failure from a different token API.
+        if accounts is not None:
             return accounts
-    except Exception:
-        pass  # A failed library account lookup is not necessarily an invalid cookie.
-    return await asyncio.to_thread(_direct_hoyolab_roles, cookie)
+    except Exception as exc:
+        # Do not emit library exception text: it may contain cookies or URLs.
+        if notify:
+            from .login_diagnostics import error_summary
+            notify('hoyolab_accounts ' + error_summary(exc))
+    return await asyncio.to_thread(_direct_hoyolab_roles, cookie, notify=notify)
 
 
 def choose_hoyolab_uids(accounts):
@@ -117,13 +151,17 @@ def choose_hoyolab_uids(accounts):
     for acct in accounts:
         biz = str((acct.get("game_biz", "") if isinstance(acct, dict) else getattr(acct, "game_biz", "")) or "").lower()
         uid = str((acct.get("game_uid") or acct.get("uid") if isinstance(acct, dict) else getattr(acct, "uid", "")) or "")
-        region = str((acct.get("region", "") if isinstance(acct, dict) else getattr(acct, "region", "")) or "").lower()
+        region = str((acct.get("region") or acct.get("server", "") if isinstance(acct, dict)
+                      else getattr(acct, "region", "") or getattr(acct, "server", "")) or "").lower()
         match = ("genshin" if "hk4e" in biz or "genshin" in biz else
                  "hsr" if "hkrpg" in biz or "starrail" in biz else
                  "zzz" if "nap" in biz or "zzz" in biz else None)
         if match and _asia_uid(match, uid):
-            # 지역 텍스트가 제공됐다면 명시적인 비아시아 지역은 거절.
-            if any(x in region for x in ("america", "europe", "tw", "hk", "mo", "china", "cn_")):
+            # genshin.py exposes API `region` as `server`. Match the public
+            # server identifiers; an unknown supplied region must not enable sync.
+            expected = {'genshin': 'os_asia', 'hsr': 'prod_official_asia',
+                        'zzz': 'prod_gf_jp'}[match]
+            if region and region not in (expected, 'asia'):
                 continue
             grouped[match].append(uid)
     resolved = {game: ids[0] for game, ids in grouped.items() if len(set(ids)) == 1}
@@ -191,6 +229,9 @@ def list_asia_endfield_roles(binding):
                 server_name = str(role.get("serverName") or "").lower()
                 rid = str(role.get("roleId") or "")
                 sid = str(role.get("serverId") or "")
+                # An explicit region name wins over a legacy serverId hint.
+                if any(t in server_name for t in ("america", "europe", "美服", "欧服", "北美", "유럽", "미주", "china", "中国")):
+                    continue
                 if sid != "2" and not any(t in server_name for t in ("asia", "亚洲", "亞洲", "아시아", "アジア")):
                     continue
                 if rid.isdigit() and sid:

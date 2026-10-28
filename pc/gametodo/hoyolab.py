@@ -9,6 +9,7 @@ import logging
 import time
 
 from .credentials import read_secret
+from .hoyo_client import close_hoyo_client
 
 LOG = logging.getLogger(__name__)
 KST = timezone(timedelta(hours=9))
@@ -38,7 +39,7 @@ async def request_genshin(uid: int, cookie: str):
     try:
         return await get_notes(uid)
     finally:
-        await client.close()
+        await close_hoyo_client(client)
 
 
 def check_once(settings, todoist, store, dry_run=False):

@@ -14,6 +14,7 @@ import re
 from typing import Any
 
 from .credentials import read_secret
+from .hoyo_client import close_hoyo_client
 
 _ALLOWED_KEY = re.compile(r'[A-Za-z][A-Za-z0-9_]{0,55}\Z')
 _SECRET_KEY = re.compile(r'(cookie|token|secret|auth|passwd|password|session|signature|email|phone|device|nickname|name|avatar|icon|image|url|link|user|player|account|uid|role|id$|_id$|character|weapon|member|lineup|description|desc|title|text|key|hash|ip_address)', re.I)
@@ -140,7 +141,7 @@ async def collect(config: dict) -> dict:
             if not uid.isdigit(): continue
             report['requests'].extend(await collect_hoyo(client, game, uid, 1))
     finally:
-        await client.close()
+        await close_hoyo_client(client)
     return report
 
 def main():

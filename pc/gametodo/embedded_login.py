@@ -16,6 +16,8 @@ from pathlib import Path
 
 from .credentials import save_secret
 from .account_setup import choose_hoyolab_uids, write_settings, select_asia_endfield_role
+from .login_diagnostics import (LoginApiError, login_request, response_summary,
+                                error_summary, numeric_status)
 
 PROFILE_ROOT = Path.home() / '.gametodo' / 'browser_profiles'
 HOYO_URL = 'https://www.hoyolab.com/'
@@ -74,18 +76,9 @@ def extract_hoyolab_cookie(cookie_rows):
 
 
 def _complete_hoyo_auth(rows):
-    """Never exit the login browser before both a session token and user identity exist.
-
-    HoYoLAB sets cookies asynchronously; having only ltoken_v2 causes invalid
-    get_game_accounts requests and was the most likely step-3 failure.
-    """
-    if not isinstance(rows, dict):
-        return False
-    token = any(rows.get(n) for n in ('ltoken_v2', 'ltoken', 'cookie_token_v2',
-                                     'cookie_token', 'stoken_v2', 'stoken'))
-    identity = any(rows.get(n) for n in ('ltuid_v2', 'ltuid', 'account_id_v2',
-                                        'account_id', 'account_mid_v2', 'ltmid_v2'))
-    return bool(token and identity)
+    """Wait for a matching token/account-ID pair; mid alone is not an account ID."""
+    from .hoyo_client import hoyolab_auth_ready
+    return hoyolab_auth_ready(rows)
 
 
 def validate_gryphline_basic(rsp):
@@ -96,14 +89,17 @@ def validate_gryphline_basic(rsp):
     """
     if not isinstance(rsp, dict):
         return None
+    unknown_status = False
     for key in ('status', 'code'):
         value = rsp.get(key)
         if value is not None:
-            try:
-                if int(value) != 0:
-                    return False
-            except (ValueError, TypeError):
-                return None
+            number = numeric_status(value)
+            if number is None:
+                unknown_status = True
+            elif number != 0:
+                return False
+    if unknown_status:
+        return None
     data = rsp.get('data')
     if isinstance(data, dict):
         if isinstance(data.get('basicUser'), dict):
@@ -164,12 +160,13 @@ def login_hoyolab(config_path, notify=None, timeout=180):
     _emit(notify, '3/4', 'HoYoLAB 계정 API로 아시아 UID를 검증 중')
     try:
         from .account_setup import _discover_hoyolab_accounts
-        accounts = asyncio.run(_discover_hoyolab_accounts(cookie))
+        accounts = asyncio.run(_discover_hoyolab_accounts(
+            cookie, notify=lambda detail: _emit(notify, '3/4 API', detail)))
     except ImportError as exc:
         raise LoginStepError('3/4 계정 확인', 'genshin 라이브러리가 필요합니다: python -m pip install genshin') from exc
     except Exception as exc:
         raise LoginStepError('3/4 계정 확인',
-                             'HoYoLAB 아시아 UID 조회 실패: 로그인 쿠키 또는 게임 계정 API를 확인해주세요. 진단에서 오류 종류를 확인할 수 있습니다') from exc
+                             'HoYoLAB 아시아 UID 조회 실패 · ' + error_summary(exc)) from None
     uids, uncertain = choose_hoyolab_uids(accounts)
     if not uids:
         raise LoginStepError('3/4 UID 확인', '연결된 아시아 서버 게임 UID가 발견되지 않았습니다')
@@ -216,11 +213,14 @@ def login_skport(config_path, notify=None, timeout=210, choose_role=None):
     _emit(notify, '3/5', 'GRYPHLINE 인증 토큰의 유효성 검증 중')
     try:
         from .http_client import HttpClient
-        rsp = HttpClient(timeout=15).request('https://as.gryphline.com/user/info/v1/basic',
+        rsp = login_request(HttpClient(timeout=15), 'gryphline_basic',
+                         'https://as.gryphline.com/user/info/v1/basic',
+                         notify=lambda detail: _emit(notify, '3/5 API', detail),
                          headers={'Authorization': f'Bearer {token}', 'x-language': 'en-us'})
         validated = validate_gryphline_basic(rsp)
         if validated is False:
-            raise LoginStepError('3/5 토큰 검증', 'GRYPHLINE가 인증 실패 상태 코드를 반환했습니다. 공식 사이트에서 다시 로그인하세요.')
+            raise LoginStepError('3/5 토큰 검증',
+                                 'GRYPHLINE 기본정보 API 실패 (토큰 만료로 단정할 수 없음) · ' + response_summary(rsp))
         if validated is None:
             _emit(notify, '3/5', '기본정보 응답 구조가 달라 OAuth와 실제 캐릭터 연결로 재검증합니다')
     except LoginStepError:
@@ -229,13 +229,14 @@ def login_skport(config_path, notify=None, timeout=210, choose_role=None):
         # This endpoint is auxiliary: an HTTP 401/403 is a real auth error,
         # other failures are resolved by actual OAuth and binding verification.
         from urllib.error import HTTPError
-        if isinstance(exc, HTTPError) and exc.code in (401, 403):
-            raise LoginStepError('3/5 토큰 검증', f'계정 서버 인증 거부 (HTTP {exc.code}). 재로그인이 필요합니다.') from exc
-        _emit(notify, '3/5', '기본정보 API 확인 실패 · OAuth 바인딩으로 계속 검증합니다')
+        code = exc.http_status if isinstance(exc, LoginApiError) else (exc.code if isinstance(exc, HTTPError) else None)
+        if code in (401, 403):
+            raise LoginStepError('3/5 토큰 검증', f'계정 서버 인증 거부 (HTTP {code}). 재로그인이 필요합니다.') from None
+        _emit(notify, '3/5', '기본정보 API 확인 실패 · ' + error_summary(exc) + ' · OAuth 바인딩으로 계속 검증합니다')
     _emit(notify, '4/5', 'SKPORT OAuth 승인 및 아시아 캐릭터 바인딩 확인 중')
     try:
         from .skport import Skport
-        binding = Skport(token).binding()
+        binding = Skport(token, notify=lambda detail: _emit(notify, '4/5 API', detail)).binding()
         from .account_setup import list_asia_endfield_roles
         roles = list_asia_endfield_roles(binding)
         if len(roles) == 1:
@@ -245,7 +246,8 @@ def login_skport(config_path, notify=None, timeout=210, choose_role=None):
         else:
             selected = None
     except Exception as exc:
-        raise LoginStepError('4/5 게임 연동', 'SKPORT OAuth/서명/캐릭터 목록 조회 실패 (API 변경 가능)') from exc
+        raise LoginStepError('4/5 게임 연동',
+                             'SKPORT OAuth/서명/캐릭터 목록 조회 실패 · ' + error_summary(exc)) from None
     if not selected:
         raise LoginStepError('4/5 아시아 서버', '아시아 캐릭터가 없거나 여러 계정 중 선택되지 않았습니다. 계정 목록을 확인하세요')
     _emit(notify, '5/5', '인증값과 아시아 캐릭터 정보 저장 중')

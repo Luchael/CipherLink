@@ -124,10 +124,10 @@ def fetch_banners(http, game: str, cfg: dict, *, now=None):
     """공개 페이지는 ETag/Last-Modified 캐시 이용. 인증/게임 로그인 불필요."""
     if game not in SOURCE_KEYS or not cfg.get("enabled", False):
         return []
-    if game == "wuthering":
-        # 사용자는 명조 글로벌 서버를 사용한다. KR 팬 캘린더와 글로벌 Asia 일정이
-        # 동일하다고 확인되지 않았으므로 잘못된 가챠를 생성하는 것보다 조회 보류.
-        raise UnsupportedBannerSource("명조 글로벌 Asia 가챠 일정 검증된 제공처 없음 · 자동 등록 건너뜀")
+    # 사용자가 명조의 글로벌/CN 공통 가챠 일정 사용을 허용했다.
+    # 다른 게임과 같은 한국어/KST 공개 일정 파서만 사용하며, 개인 CN API는 호출하지 않는다.
+    if cfg.get("source", "pickupcal") != "pickupcal":
+        raise UnsupportedBannerSource("검증되지 않은 가챠 출처 · 자동 등록 건너뜀")
     slug = cfg.get("slug", game)
     if slug not in SOURCE_KEYS:
         raise ValueError("허용되지 않은 배너 출처")

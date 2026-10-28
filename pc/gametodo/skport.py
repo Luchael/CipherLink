@@ -10,47 +10,74 @@ import time
 from urllib.parse import urlencode
 
 from .http_client import HttpClient
+from .login_diagnostics import LoginApiError, login_request, numeric_status
 
 APP_CODE = "6eb76d4e13aa36e6"
 
 
 class Skport:
-    def __init__(self, account_token, http=None):
+    def __init__(self, account_token, http=None, notify=None):
         self.token = account_token
         self.http = http or HttpClient(timeout=12)
+        self.notify = notify
         self._cred = None
         self._salt = None
 
     @staticmethod
-    def _extract(rsp, key):
+    def _check_response(rsp, operation):
+        """An error envelope must never supply credentials or game data.
+
+        These APIs use zero for success. Missing status fields remain compatible
+        with older responses; unknown/nonzero statuses are errors, not an
+        inferred token-expiration diagnosis.
+        """
         if not isinstance(rsp, dict):
-            raise ValueError("SKPORT 형식 오류")
-        return (rsp.get("data") or {}).get(key) or rsp.get(key)
+            raise LoginApiError(operation, response=rsp)
+        for key in ('code', 'status'):
+            if key not in rsp:
+                continue
+            if numeric_status(rsp[key]) != 0:
+                raise LoginApiError(operation, response=rsp)
+        if 'data' in rsp and not isinstance(rsp['data'], dict):
+            raise LoginApiError(operation, response=rsp)
+        return rsp.get('data') or {}
+
+    @classmethod
+    def _extract(cls, rsp, key, operation):
+        data = cls._check_response(rsp, operation)
+        value = data.get(key) or rsp.get(key)
+        if not isinstance(value, str) or not value.strip():
+            raise LoginApiError(operation, response=rsp)
+        return value
 
     def _session(self):
         if self._cred and self._salt:
             return
-        rsp = self.http.request("https://as.gryphline.com/user/oauth2/v2/grant",
+        rsp = login_request(self.http, 'skport_oauth', "https://as.gryphline.com/user/oauth2/v2/grant",
+                                notify=self.notify,
                                 method="POST", payload={"token": self.token,
                                                          "appCode": APP_CODE, "type": 0})
-        code = self._extract(rsp, "code")
-        # 응답의 최상단 code가 오류 숫자인 경우 이를 OAuth 코드로 취급하지 않는다.
-        if not isinstance(code, str) or not code:
-            raise ValueError("GRYPHLINE OAuth 승인 실패 (토큰 만료 가능)")
-        cred_rsp = self.http.request("https://zonai.skport.com/web/v1/user/auth/generate_cred_by_code",
+        data = self._check_response(rsp, 'skport_oauth')
+        # Top-level code is a status, never an OAuth authorization code.
+        code = data.get('code')
+        if not isinstance(code, str) or not code.strip():
+            raise LoginApiError('skport_oauth', response=rsp)
+        cred_rsp = login_request(self.http, 'skport_cred', "https://zonai.skport.com/web/v1/user/auth/generate_cred_by_code",
+                                     notify=self.notify,
                                      method="POST", payload={"kind": 1, "code": code})
-        cred = self._extract(cred_rsp, "cred")
-        if not isinstance(cred, str) or not cred:
-            raise ValueError("SKPORT cred 획득 실패")
-        refresh = self.http.request("https://zonai.skport.com/web/v1/auth/refresh",
+        cred = self._extract(cred_rsp, "cred", 'skport_cred')
+        refresh = login_request(self.http, 'skport_refresh', "https://zonai.skport.com/web/v1/auth/refresh",
+                                    notify=self.notify,
                                     headers={"cred": cred, "Origin": "https://game.skport.com"})
         # 서명 키는 2026년 문서 기준 refresh.data.token으로 제공된다.
-        salt = self._extract(refresh, "token") or self._extract(refresh, "salt")
-        if not isinstance(salt, str) or not salt:
-            raise ValueError("SKPORT salt 획득 실패")
+        data = self._check_response(refresh, 'skport_refresh')
+        # Preserve the legacy salt field while preferring the documented token.
+        salt = data.get('token') or data.get('salt') or refresh.get('token') or refresh.get('salt')
+        if not isinstance(salt, str) or not salt.strip():
+            raise LoginApiError('skport_refresh', response=refresh)
         self._cred, self._salt = cred, salt
 
-    def _signed_get(self, path, params=None, game_role=None):
+    def _signed_get(self, path, params=None, game_role=None, *, operation):
         self._session()
         params = params or {}
         query = urlencode(params)
@@ -67,15 +94,19 @@ class Skport:
         if game_role:
             headers["sk-game-role"] = game_role
         url = f"https://zonai.skport.com{path}" + ("?" + query if query else "")
-        rsp = self.http.request(url, headers=headers)
-        if not isinstance(rsp, dict) or not isinstance(rsp.get("data"), dict):
-            raise ValueError("SKPORT API 응답 실패/서명 규격 변경")
+        rsp = login_request(self.http, operation, url, notify=self.notify, headers=headers)
+        self._check_response(rsp, operation)
+        if not isinstance(rsp.get("data"), dict):
+            raise LoginApiError(operation, response=rsp)
         return rsp
 
     def binding(self):
-        return self._signed_get("/api/v1/game/player/binding")
+        rsp = self._signed_get("/api/v1/game/player/binding", operation='skport_binding')
+        if not isinstance(rsp['data'].get('list'), list):
+            raise LoginApiError('skport_binding', response=rsp)
+        return rsp
 
     def detail(self, role_id, server_id):
         return self._signed_get("/api/v1/game/endfield/card/detail",
                                 {"roleId": role_id, "serverId": server_id},
-                                game_role=f"3_{role_id}_{server_id}")
+                                game_role=f"3_{role_id}_{server_id}", operation='skport_detail')

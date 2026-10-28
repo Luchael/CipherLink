@@ -45,7 +45,7 @@ def load_settings(path: str) -> dict:
     merged = {k: dict(v) for k, v in DEFAULT_GAMES.items()}
     for key, value in settings["game_settings"].items():
         if key == "colorsweeper":
-            # 0.3 이하의 구설정은 읽되 이 게임의 모든 동작을 제외.
+            # 수동 할 일/플로팅은 지원하되 구설정의 자동 수집은 활성화하지 않는다.
             continue
         if key not in merged:
             raise ValueError(f"알 수 없는 게임 키: {key}")

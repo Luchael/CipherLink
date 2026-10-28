@@ -1,9 +1,7 @@
 {
   "schema_version": 1,
   "timezone": "Asia/Seoul",
-  "exclude_games": [
-    "colorsweeper"
-  ],
+  "exclude_games": [],
   "games": {
     "genshin": {
       "name": "원신",
@@ -84,6 +82,13 @@
       "android_packages": [
         "com.gryphline.endfield.glx"
       ]
+    },
+    "colorsweeper": {
+      "name": "컬러스위퍼",
+      "prefix": "색지뢰",
+      "label": "컬러스위퍼",
+      "daily_reset_hour_kst": null,
+      "android_packages": []
     }
   },
   "completion": {

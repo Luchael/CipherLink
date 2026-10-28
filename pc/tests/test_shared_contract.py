@@ -11,7 +11,8 @@ class TestSharedContract(unittest.TestCase):
             with self.subTest(game=game):
                 self.assertEqual(GAMES[game].prefix, data["prefix"])
                 self.assertEqual(GAMES[game].label, data["label"])
-        self.assertNotIn("colorsweeper", rules["games"])
+        self.assertEqual(rules["games"]["colorsweeper"]["prefix"], "색지뢰")
+        self.assertIsNone(rules["games"]["colorsweeper"]["daily_reset_hour_kst"])
 
 if __name__ == "__main__":
     unittest.main()

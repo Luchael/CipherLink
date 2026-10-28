@@ -17,7 +17,7 @@ GAMES = {
     "limbus": GameProfile("림버스 컴퍼니", "림컴", "림버스컴퍼니"),
     "stella": GameProfile("스텔라 소라", "스소", "스텔라소라"),
     "reverse1999": GameProfile("리버스: 1999", "립9", "리버스1999"),
-    # 레거시 식별만 유지. 컬러스위퍼는 설정 단계에서 완전히 비활성화한다.
+    # 수동 할 일/플로팅 식별용. 개인 진행도/가챠 자동 수집은 활성화하지 않는다.
     "colorsweeper": GameProfile("컬러스위퍼", "색지뢰", "컬러스위퍼"),
     "arknights": GameProfile("명일방주", "명방", "명일방주"),
     "endfield": GameProfile("명일방주: 엔드필드", "엔필", "명일방주:엔드필드"),

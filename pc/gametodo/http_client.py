@@ -15,8 +15,10 @@ class HttpClient:
         self.store = store
         self.timeout = timeout
         self.token = token
+        self.last_status = None
 
     def request(self, url, method="GET", payload=None, cache=False, headers=None):
+        self.last_status = None
         h = {"User-Agent": "GameTodoBridge/0.1 (+personal automation)", "Accept-Encoding": "gzip"}
         if headers:
             h.update(headers)
@@ -34,6 +36,7 @@ class HttpClient:
             try:
                 req = Request(url, data=blob, headers=h, method=method)
                 with urlopen(req, timeout=self.timeout) as res:
+                    self.last_status = res.status
                     raw = res.read(2_500_001)
                     if len(raw) > 2_500_000:
                         raise ValueError("응답이 비정상적으로 큽니다")
@@ -47,6 +50,7 @@ class HttpClient:
                         return json.loads(raw)
                     return raw.decode("utf-8")
             except HTTPError as exc:
+                self.last_status = exc.code
                 if exc.code == 304 and old:
                     return json.loads(old[2]) if old[2].lstrip().startswith((b"{", b"[")) else old[2].decode("utf-8")
                 if exc.code not in (429, 500, 502, 503, 504) or attempt == 2:

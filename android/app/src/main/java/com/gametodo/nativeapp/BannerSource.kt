@@ -83,8 +83,8 @@ object BannerSource {
     /** 공개 페이지는 최소 15분 주기로만 가져온다. URL은 고정되어 요청 주입이 불가능하다. */
     fun fetch(game: GameRules.Game, nowMs: Long): List<BannerRecord> {
         if (game.key !in games) return emptyList()
-        // 명조는 글로벌 계정/아시아 서버 데이터 검증이 필요. 한국 일정이 글로벌과 동일함을 가정하지 않는다.
-        if (game.key == "wuthering") return emptyList()
+        // 사용자가 명조 글로벌/CN 공통 가챠 일정을 허용했다. 개인 CN 계정 API와는 별개다.
+        // 기존 한국어/KST·현재 캐릭터 픽업 파서와 PC 공통 키를 그대로 사용한다.
         val url = "https://www.pickupcal.com/games/${game.key}/"
         val conn = URL(url).openConnection() as HttpURLConnection
         try {

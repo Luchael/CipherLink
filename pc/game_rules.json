@@ -1,9 +1,7 @@
 {
   "schema_version": 1,
   "timezone": "Asia/Seoul",
-  "exclude_games": [
-    "colorsweeper"
-  ],
+  "exclude_games": [],
   "games": {
     "genshin": {
       "name": "원신",
@@ -78,6 +76,13 @@
       "prefix": "엔필",
       "label": "명일방주:엔드필드",
       "daily_reset_hour_kst": 5,
+      "android_packages": []
+    },
+    "colorsweeper": {
+      "name": "컬러스위퍼",
+      "prefix": "색지뢰",
+      "label": "컬러스위퍼",
+      "daily_reset_hour_kst": null,
       "android_packages": []
     }
   },

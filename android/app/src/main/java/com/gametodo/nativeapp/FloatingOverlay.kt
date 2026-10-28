@@ -247,11 +247,16 @@ class FloatingOverlay(private val context: Context) {
                 val api = TodoistApi(context)
                 val nowMillis = System.currentTimeMillis()
                 val sectionIndex = api.floatingSections(nowMillis)
-                val tasks = api.tasks().filter { item ->
-                    GameRules.matchingTask(target, item.title, item.labels) &&
-                        OverlayTaskPolicy.canDisplay(item.title, item.dueDate, item.sectionId,
-                            sectionIndex.excludedIds,target.key,nowMillis,item.dueString,item.isRecurring,
-                            sectionIndex.kinds[item.sectionId] ?: RecurrenceWindow.Kind.OTHER)
+                val allTasks = api.tasks()
+                val tasksById = allTasks.associateBy { it.id }
+                val games = GameRules.all(context)
+                val gameKeys: (TodoTask) -> Set<String> = { item ->
+                    games.filter { GameRules.matchingTask(it, item.title, item.labels) }
+                        .map { it.key }.toSet()
+                }
+                val tasks = allTasks.mapNotNull { item ->
+                    OverlayTaskTree.displayTask(item, tasksById, target.key, nowMillis,
+                        sectionIndex.excludedIds, sectionIndex.kinds, gameKeys)
                 }
                 main.post {
                     if (id != sequence || !expanded || game?.key != target.key) return@post
@@ -271,14 +276,19 @@ class FloatingOverlay(private val context: Context) {
                                     try {
                                         // PC/모바일에서 동일 Todoist 계정을 사용한다. 서버의 현재 회차를 다시 확인.
                                         val liveApi = TodoistApi(context)
+                                        // Re-fetch ancestry as well as the child: a parent's due date,
+                                        // section or game affiliation may have changed since display.
+                                        val liveTree = liveApi.tasks().associateBy { it.id }.toMutableMap()
                                         val latest=liveApi.taskById(item.id)
                                         val now = System.currentTimeMillis()
                                         val sections = liveApi.floatingSections(now)
-                                        if (latest!=null && GameRules.matchingTask(target,latest.title,latest.labels) &&
-                                            OverlayTaskPolicy.canDisplay(latest.title,latest.dueDate,latest.sectionId,
-                                                sections.excludedIds,target.key,now,latest.dueString,latest.isRecurring,
-                                                sections.kinds[latest.sectionId] ?: RecurrenceWindow.Kind.OTHER)) {
-                                            liveApi.complete(item.id)
+                                        if (latest != null && liveTree.containsKey(latest.id)) {
+                                            liveTree[latest.id] = latest
+                                            val current = OverlayTaskTree.displayTask(latest, liveTree,
+                                                target.key, now, sections.excludedIds, sections.kinds, gameKeys)
+                                            if (current != null && OverlayTaskTree.sameDisplayedOccurrence(item, current)) {
+                                                liveApi.complete(item.id)
+                                            }
                                         }
                                         main.post { if (expanded && game?.key==target.key) refresh(target) }
                                     } catch (_: Exception) {

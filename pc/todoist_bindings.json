@@ -2,9 +2,7 @@
   "schema_version": 1,
   "origin": "Todoist DoDoGames screenshots 2026-10-28",
   "matching": "exact title + game prefix/label; no new Todoist tasks are created",
-  "excluded_games": [
-    "colorsweeper"
-  ],
+  "excluded_games": [],
   "tasks": [
     {
       "game": "genshin",
@@ -330,6 +328,15 @@
       "status": "manual",
       "aliases": [],
       "note": "개인 보상 API 미확인"
+    },
+    {
+      "game": "colorsweeper",
+      "title": "[색지뢰] 일퀘",
+      "cadence": "daily",
+      "metric": null,
+      "status": "manual",
+      "aliases": [],
+      "note": "사용자가 직접 확인 후 수동 완료. 개인 진행도 API와 자동 가챠 수집은 연결하지 않습니다."
     }
   ]
 }

@@ -1,0 +1,35 @@
+name: Build Windows EXE (manual, unverified)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: pc
+    env:
+      CIPHERLINK_BUILD_NONINTERACTIVE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check, test, and package
+        shell: cmd
+        run: call build_windows.bat
+      - name: Save EXE and checksum for manual validation
+        uses: actions/upload-artifact@v4
+        with:
+          name: CipherLink-Windows-unverified-${{ github.sha }}
+          path: |
+            pc/dist/CipherLink.exe
+            pc/dist/SHA256SUMS.txt
+            docs/WINDOWS_DISTRIBUTION.md
+          if-no-files-found: error
+          retention-days: 14

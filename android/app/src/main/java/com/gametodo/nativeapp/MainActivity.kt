@@ -60,7 +60,7 @@ class MainActivity : Activity() {
             try { push(action()) }
             catch (e:Exception) {
                 // 키·쿠키·토큰이 예외 메시지에 섞이지 않도록 종류만 사용자에게 표시.
-                push("실행 오류 (${e.javaClass.simpleName}). 계정 상태와 연결을 확인하세요.")
+                push("실행 오류 · ${SafeFailure.describe(e)}. 계정 상태와 연결을 확인하세요.")
             }
         }
     }
@@ -159,7 +159,7 @@ class MainActivity : Activity() {
                                 (if(entries.isEmpty()) "표시할 실시간 메모 필드가 없습니다." else entries.joinToString("\n")) +
                                 "\n\nTodoist 감지용 점수\n" + (auto.ifBlank { "주간 복합 조건 미확인 · 자동 체크 보류" }))
                         } catch(e:Exception) {
-                            fragments.add("${role.game}: 조회 실패 — ${e.message ?: e.javaClass.simpleName}")
+                            fragments.add("${role.game}: 조회 실패 — ${SafeFailure.describe(e)}")
                         }
                     }
                 }
@@ -185,7 +185,7 @@ class MainActivity : Activity() {
                             val gs=EndfieldProvider.progress(token,role)
                             fragments.add("엔드필드 (${role.nickname})\n"+
                                 if(gs.isEmpty())"조회 가능한 진행도 없음" else gs.joinToString("\n") { "${it.metric}: ${it.current}/${it.maximum}" })
-                        } catch(e:Exception) {fragments.add("엔드필드: 조회 실패 — ${e.message ?: e.javaClass.simpleName}")}
+                        } catch(e:Exception) {fragments.add("엔드필드: 조회 실패 — ${SafeFailure.describe(e)}")}
                     }
                 }
                 val appVersion = try { packageManager.getPackageInfo(packageName, 0).versionName ?: "알 수 없음" }
@@ -289,8 +289,10 @@ class MainActivity : Activity() {
 
     private fun tasks() {
         rowTitle("할 일 동기화")
+        addCard("휴대폰 중심으로 사용",TaskSupport.mobileGuidance)
         addCard("계정 데이터 기반 완료","게임 초기화 전에는 체크하지 않고, 동일 회차는 한 번만 처리해요.")
         addCard("가챠 자동 관리","시작일은 Todoist 날짜, 종료되면 앱에서 자동 완료해요.")
+        action("전체 작업 지원 현황 보기") { showTaskSupport() }
         action("지금 동기화",true) {syncNow()}
         action("자동 완료가 안 되는 이유 확인") {
             startJob("서버 회차·완료 점수·Todoist 날짜를 점검하고 있어요…") {
@@ -304,6 +306,29 @@ class MainActivity : Activity() {
             }
         }
     }
+    private fun showTaskSupport() {
+        try {
+            val catalog = org.json.JSONObject(assets.open("todoist_bindings.json")
+                .bufferedReader(Charsets.UTF_8).use { it.readText() }).getJSONArray("tasks")
+            val entries = (0 until catalog.length()).map { index ->
+                val row = catalog.getJSONObject(index)
+                TaskSupport.Entry(row.getString("game"), row.getString("title"),
+                    row.getString("cadence"), row.optString("metric"),
+                    row.getString("status"), row.optString("note"))
+            }
+            val text = label(TaskSupport.report(entries),14f).apply {
+                setTextIsSelectable(true)
+                val pad = UiKit.dp(this@MainActivity,18)
+                setPadding(pad,pad,pad,pad)
+            }
+            val scroll = ScrollView(this).apply { addView(text) }
+            AlertDialog.Builder(this).setTitle("할 일 지원 현황")
+                .setView(scroll).setPositiveButton("닫기",null).show()
+        } catch (e: Exception) {
+            push("지원 현황을 표시하지 못했습니다 · ${SafeFailure.describe(e)}")
+        }
+    }
+
     private fun syncNow() {
         startJob("가챠 및 게임 진행도 동기화 중…") {
             val todoist=TodoistApi(applicationContext)
@@ -346,7 +371,7 @@ class MainActivity : Activity() {
     }
 
     private fun selectGameForPackage(pkg:String,appName:String) {
-        val games=GameRules.all(this).filter { it.key!="colorsweeper" }.sortedBy {it.name}
+        val games=GameRules.all(this).sortedBy {it.name}
         AlertDialog.Builder(this).setTitle("$appName → 어떤 게임?")
             .setItems(games.map { it.name }.toTypedArray()) { _,position ->
                 val existing=getSharedPreferences("gametodo",MODE_PRIVATE).getString("packages","").orEmpty()
