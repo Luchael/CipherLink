@@ -159,14 +159,16 @@ class ExecutionTests(unittest.TestCase):
     def test_completed_occurrence_ledger_prevents_double_close(self):
         with tempfile.TemporaryDirectory() as tmp:
             store=Store(str(Path(tmp)/"db.sqlite"))
-            key="game:uid:weekly:2026-10-26"
-            self.assertFalse(store.has_completed(key))
-            store.record_completion(key,"123")
-            store.record_completion(key,"123")
-            self.assertTrue(store.has_completed(key))
-            count=store.db.execute("SELECT COUNT(*) FROM completed_occurrences").fetchone()[0]
-            self.assertEqual(count,1)
-
+            try:
+                key="game:uid:weekly:2026-10-26"
+                self.assertFalse(store.has_completed(key))
+                store.record_completion(key,"123")
+                store.record_completion(key,"123")
+                self.assertTrue(store.has_completed(key))
+                count=store.db.execute("SELECT COUNT(*) FROM completed_occurrences").fetchone()[0]
+                self.assertEqual(count,1)
+            finally:
+                store.db.close()
 
 if __name__ == "__main__":
     unittest.main()

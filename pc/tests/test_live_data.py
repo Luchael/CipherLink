@@ -152,7 +152,11 @@ class EvidenceWindowTests(unittest.TestCase):
         from gametodo.store import Store
         with tempfile.TemporaryDirectory() as tmp:
             db=Store(str(Path(tmp) / "data.sqlite"))
-            self.assertFalse(db.evidence_seen("acct:x",1000, min_interval=120,max_age=5400))
-            self.assertTrue(db.evidence_seen("acct:x",2200, min_interval=120,max_age=5400))
-            self.assertFalse(db.evidence_seen("old:ocr",1000,min_interval=8))
-            self.assertFalse(db.evidence_seen("old:ocr",2200,min_interval=8))
+            try:
+                self.assertFalse(db.evidence_seen("acct:x",1000, min_interval=120,max_age=5400))
+                self.assertTrue(db.evidence_seen("acct:x",2200, min_interval=120,max_age=5400))
+                self.assertFalse(db.evidence_seen("old:ocr",1000,min_interval=8))
+                self.assertFalse(db.evidence_seen("old:ocr",2200,min_interval=8))
+            finally:
+                db.db.close()
+

@@ -31,9 +31,9 @@ import java.util.concurrent.Executors
  * GameTodo 게임사 계정 연결.
  *
  * 설계 포인트:
- * 1. 상단의 4개 버튼은 고정: WebView/하단 시스템 내비게이션 바가 가리지 못하게 한다.
+ * 1. 상단의 로그인/계정 불러오기 버튼은 고정: WebView/하단 시스템 내비게이션 바가 가리지 못하게 한다.
  * 2. WebView 안에서 직접 로그인해야 앱의 CookieManager로 해당 세션을 확인할 수 있다.
- * 3. 출석 페이지는 공식 주소로 WebView 안에서 이동한다. 실패하면 로딩 오류를 안내한다.
+ * 3. 공식 로그인 페이지를 WebView 안에서 표시하며 상태 조회는 사용자가 누를 때만 실행한다.
  * 4. 쿠키 값은 절대로 로그/화면에 출력하지 않는다. UID는 마지막 4자리만 보여준다.
  * 5. 계정 목록 API와 실제 진행도 API를 각각 검증한 뒤 암호화 저장한다.
  */
@@ -54,12 +54,6 @@ class GameAccountLoginActivity : Activity() {
     )
     private val skOrigins = listOf("https://game.skport.com/", "https://web-api.skport.com/")
     private val homeHoyo = "https://www.hoyolab.com/home"
-    // 공식 출석 페이지 3개를 분리해 로그인 후 해당 게임으로 정확히 이동.
-    private val attendanceUrls = linkedMapOf(
-        "원신" to "https://act.hoyolab.com/bbs/event/signin-ys/index.html?act_id=e202102251931481",
-        "붕괴: 스타레일" to "https://act.hoyolab.com/bbs/event/signin/hkrpg/index.html?act_id=e202303301540311",
-        "젠레스 존 제로" to "https://act.hoyolab.com/bbs/event/signin/zzz/e202406031448091.html?act_id=e202406031448091"
-    )
     private val homeSkport = "https://game.skport.com/endfield/sign-in"
 
     private fun report(message: String) = runOnUiThread { status.text = message }
@@ -99,9 +93,7 @@ class GameAccountLoginActivity : Activity() {
             return b
         }
         toolButton("로그인 페이지", { openOfficial() })
-        toolButton(if (provider == "hoyolab") "출석 페이지" else "SKPORT 출석", { openAttendance() })
-        toolButton("쿠키 상태 확인", { diagnoseCookies() })
-        accountButton = toolButton("로그인 완료 · 캐릭터 조회", { verifyLogin() })
+        accountButton = toolButton("계정 불러오기", { verifyLogin() })
         val title = UiKit.column(this,UiKit.BG,16).apply {
             addView(UiKit.text(this@GameAccountLoginActivity,
                 if(provider=="hoyolab")"HoYoLAB 연결" else "SKPORT 연결",24f,UiKit.TEXT,true))
@@ -114,7 +106,7 @@ class GameAccountLoginActivity : Activity() {
         // 진행상태가 길어지더라도 버튼을 화면 아래로 밀어내지 않도록 별도 스크롤 영역 사용.
         val statusArea = ScrollView(this).apply { isFillViewport = false }
         status = TextView(this).apply {
-            text = "[1/4] 공식 사이트에서 로그인하세요.\n로그인 완료 후 상단 '캐릭터 조회'를 누르세요."
+            text = "[1/4] 공식 사이트에서 로그인하세요.\n로그인 완료 후 상단 '계정 불러오기'를 눌러 주세요."
             textSize = 13f
             setTextColor(UiKit.MUTED)
             setPadding(dp(18), dp(10), dp(18), dp(10))
@@ -164,23 +156,6 @@ class GameAccountLoginActivity : Activity() {
         web.loadUrl(url)
     }
 
-    private fun openAttendance() {
-        if (provider != "hoyolab") {
-            web.loadUrl(homeSkport)
-            return
-        }
-        // 출석 URL은 각 게임마다 다르며, 로그인 과정에서도 페이지 이동 가능.
-        val games = attendanceUrls.keys.toTypedArray()
-        AlertDialog.Builder(this)
-            .setTitle("HoYoLAB 출석 페이지 선택")
-            .setItems(games) { _, index ->
-                report("[1/4] ${games[index]} 출석 페이지를 여는 중…")
-                web.loadUrl(attendanceUrls.values.elementAt(index))
-            }
-            .setNegativeButton("취소", null)
-            .show()
-    }
-
     /** 웹뷰가 로드한 실제 URL도 포함해서, 각 도메인에 속하는 쿠키 헤더만 병합. */
     private fun rawCookieHeaders(): List<String?> {
         val cookies = CookieManager.getInstance()
@@ -195,14 +170,6 @@ class GameAccountLoginActivity : Activity() {
         val headers = rawCookieHeaders()
         return if (provider == "hoyolab") HoyoAuthCore.asHeader(HoyoAuthCore.merge(headers))
             else SkportCookieCore.header(headers)
-    }
-
-    private fun diagnoseCookies() {
-        val list = rawCookieHeaders()
-        val parsed = HoyoAuthCore.merge(list)
-        val seen = HoyoAuthCore.seenNames(list)
-        if (provider == "hoyolab") report("[1/4] ${HoyoAuthCore.diagnostics(parsed, seen)}")
-        else report("[1/5] 웹 로그인 세션 확인: ${if(seen.isNotEmpty())"쿠키 ${seen.size}종 발견" else "세션 정보 없음"}.\n쿠키가 있어도 계정 토큰 교환에 성공해야 캐릭터를 조회할 수 있어요.")
     }
 
     private fun verifyLogin() {
@@ -227,7 +194,7 @@ class GameAccountLoginActivity : Activity() {
                     if (!cred.isNullOrBlank()) {
                         lookupWithCredential(JSONObject().put("cred", cred).put("salt", usableSalt).toString())
                     } else {
-                        report("[2/4] SKPORT 로그인 세션을 확인했지만 캐릭터 API용 인증정보가 없습니다.\n공식 SKPORT 출석 페이지를 열어 로그인을 완료한 뒤 다시 조회해 주세요. (ACCOUNT_TOKEN / SK_OAUTH_CRED_KEY 미발견)")
+                        report("[2/4] SKPORT 로그인 세션을 확인했지만 캐릭터 API용 인증정보가 없습니다.\n공식 로그인 페이지에서 로그인을 완료한 뒤 다시 시도해 주세요.")
                     }
                 }
             } else {
@@ -242,9 +209,7 @@ class GameAccountLoginActivity : Activity() {
         if (provider == "hoyolab") {
             val parsed = HoyoAuthCore.merge(listOf(credential))
             if (!HoyoAuthCore.hasSession(parsed)) {
-                report("[2/4] 인증에 필요한 쿠키가 아직 없습니다.\n" +
-                    HoyoAuthCore.diagnostics(parsed, HoyoAuthCore.seenNames(rawCookieHeaders())) +
-                    "\n로그인을 완료하고 출석 페이지에서 다시 확인하세요.")
+                report("로그인을 아직 확인하지 못했어요. 공식 페이지에서 로그인을 완료한 뒤 계정을 불러와 주세요.")
                 return
             }
         } else if (credential.isBlank()) {
@@ -264,7 +229,7 @@ class GameAccountLoginActivity : Activity() {
                     runOnUiThread { showPicker(roles, credential) }
                 }
             } catch (error: Exception) {
-                report("[2/4] 캐릭터 목록 조회 실패: ${error.message ?: error.javaClass.simpleName}")
+                report("[2/4] 캐릭터 목록 조회 실패: ${SafeFailure.describe(error)}")
             } finally {
                 runOnUiThread { accountButton.isEnabled = true }
             }
@@ -347,7 +312,7 @@ class GameAccountLoginActivity : Activity() {
                     "${displayGame(role.game)}: " +
                         if (list.isEmpty()) "계정 확인됨 / 지원하는 점수 필드 미발견" else list.joinToString { "${it.metric}: ${it.current}/${it.maximum}" }
                 } catch (error: Exception) {
-                    "${displayGame(role.game)}: 데이터 조회 실패 (${error.message ?: error.javaClass.simpleName})"
+                    "${displayGame(role.game)}: 데이터 조회 실패 (${SafeFailure.describe(error)})"
                 }
             }
             // 실제로 게임 역할 API에서 조회된 항목만 로컬에 암호화 저장한다.
