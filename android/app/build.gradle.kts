@@ -6,8 +6,15 @@ android {
         applicationId = "com.gametodo.nativeapp"
         minSdk = 30
         targetSdk = 35
-        versionCode = 25
-        versionName = "0.10.4-alpha"
+        versionCode = 26
+        versionName = "0.10.5-alpha"
+        // Separate diagnostic install preserves the existing app and its Keystore.
+        if (providers.gradleProperty("cipherlinkPreview").orNull == "true") {
+            applicationIdSuffix = ".preview"
+            resValue("string", "app_name", "사이퍼링크 테스트")
+        } else {
+            resValue("string", "app_name", "사이퍼링크")
+        }
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }

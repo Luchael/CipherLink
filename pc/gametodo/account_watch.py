@@ -132,8 +132,6 @@ def run_account_check(settings, todoist=None, store=None, read_only=False, now=N
                         key = f"account:{game}:{uid}:{binding.kind}:{binding.metric}:{period.key}"
                         if _done_before(store, key):
                             desc["action"] = "이 회차는 이미 완료 처리함"
-                        elif not store.evidence_seen(key, time.time(), min_interval=120, max_age=5400):
-                            desc["action"] = "완료 근거 확인: 2분 이상 후 재검증 대기"
                         else:
                             if tasks is None:
                                 tasks = todoist.all_tasks()

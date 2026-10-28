@@ -207,7 +207,7 @@ class Desktop:
         self.auth_label.pack(anchor="w", pady=8)
         self._button(card, "연결 및 진단 열기", lambda: self._show_page("accounts")).pack(anchor="w")
         self._update_auth()
-        card = self._card(dash, "앱 동작", "진행도 확인은 읽기 전용입니다. 완료는 두 번의 검증 후 처리합니다.")
+        card = self._card(dash, "앱 동작", "진행도 확인은 읽기 전용입니다. 현재 회차의 목표 점수 충족을 한 번 확인하면 완료합니다.")
         self._button(card, "자동 확인 켜기", self._auto_start).pack(side="left", padx=(0, 10), pady=(8, 0))
         self._button(card, "자동 확인 끄기", self._auto_stop).pack(side="left", pady=(8, 0))
 

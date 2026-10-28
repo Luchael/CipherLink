@@ -1,7 +1,6 @@
 package com.gametodo.nativeapp
 
 import android.content.Context
-import java.security.MessageDigest
 
 /**
  * Todoist의 반복 일정과 게임 서버 회차를 연결하는 계층.
@@ -60,7 +59,7 @@ class AccountSync(private val context: Context) {
                         matching.first().dueDate, matching.first().dueString,
                         matching.first().isRecurring, RecurrenceWindow.Kind.OTHER, nowMillis
                     ) -> "Todoist 다음 회차/오래된 반복 회차 또는 반복 규칙 확인 필요"
-                    else -> "점수 충족 · 2회 확인 뒤 완료 가능"
+                    else -> "점수 충족 · 현재 회차 검증 후 즉시 완료 가능"
                 }
                 "${binding.titles.first()} · ${gauge.current}/${gauge.maximum} → $cause"
             }
@@ -96,18 +95,6 @@ class AccountSync(private val context: Context) {
     }
 
     private fun rule(game: String): List<Rule> = sharedRules[game] ?: emptyList()
-
-    /** 최소 2분 간격으로 같은 계정·같은 회차의 최대 보상을 재확인한다. */
-    @Synchronized private fun confirmed(key: String, nowMillis: Long): Boolean {
-        val hashed = MessageDigest.getInstance("SHA-256").digest(key.toByteArray(Charsets.UTF_8))
-            .take(12).joinToString("") { "%02x".format(it.toInt() and 0xff) }
-        val first = prefs.getLong("seen_$hashed",0L)
-        if (first == 0L || nowMillis - first > 5400000L || nowMillis < first) {
-            prefs.edit().putLong("seen_$hashed",nowMillis).apply()
-            return false
-        }
-        return nowMillis - first >= 120000L
-    }
 
     /** 서버 초기화 전/직후, 미래 Todoist 예정일, 중복 회차는 완료 처리하지 않는다. */
     fun runOnce(todoist: TodoistApi, nowMillis: Long = System.currentTimeMillis()): List<String> {
@@ -147,14 +134,16 @@ class AccountSync(private val context: Context) {
                     task.isRecurring, RecurrenceWindow.Kind.OTHER, nowMillis)) continue
             val doneId = "closed:$key:${task.id}"
             if (prefs.getBoolean(doneId,false)) continue
-            if (!confirmed(key,nowMillis)) continue
             val occurrence = when(rule.kind) {
                 "endgame" -> "endgame:" + (g.periodKey ?: continue)
                 "weekly" -> key.substringAfter(":${g.metric}:")
                 else -> key.substringAfterLast(':')
             }
-            todoist.completeForCycle(task.id,occurrence)
-            prefs.edit().putBoolean(doneId,true).apply()
+            CompletionDispatch.run(
+                { todoist.completeForCycle(task.id,occurrence) },
+                { prefs.edit().putBoolean(doneId,true).apply() },
+                { CompletionNotifications.show(context, task.title, doneId) }
+            )
             results.add("${task.title} 완료 (회차 $occurrence)")
         }
         return results

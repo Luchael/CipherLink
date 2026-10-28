@@ -98,7 +98,7 @@ class LiveDataTests(unittest.TestCase):
         self.assertEqual(len(todo.calls),1)
         self.assertEqual(results[0]["action"],"Todoist 완료 적용")
 
-    def test_account_poll_closes_when_proved_twice(self):
+    def test_account_poll_closes_on_first_valid_score(self):
         cfg={"hoyolab":{"enabled":True,"genshin_uid":"812345678"}}
         class Todo:
             def __init__(self): self.called=[]
@@ -111,9 +111,9 @@ class LiveDataTests(unittest.TestCase):
         state=genshin_status({"completed_commissions":4,"max_commissions":4,"claimed_commission_reward":True})
         with patch("gametodo.account_watch.read_hoyolab",return_value=("812345678",state)):
             now=datetime(2026,10,27,12,tzinfo=KST)
-            self.assertEqual(run_account_check(cfg,todo,store,now=now)[0]["action"],"완료 근거 확인: 2분 이상 후 재검증 대기")
             self.assertEqual(run_account_check(cfg,todo,store,now=now)[0]["action"],"Todoist 완료 적용")
         self.assertEqual(len(todo.called),1)
+        self.assertEqual(store.calls,0)
 
     def test_endfield_binding_region_blocks_non_asia(self):
         cfg={"account_data":{"endfield":{"role_id":"1234","server_id":"2"}}}

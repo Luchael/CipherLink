@@ -70,6 +70,12 @@ class MainActivity : Activity() {
         window.navigationBarColor=UiKit.BG
         page=savedInstanceState?.getInt("page") ?: 0
         render()
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
+            !getPreferences(MODE_PRIVATE).getBoolean("completion_permission_asked", false)) {
+            getPreferences(MODE_PRIVATE).edit().putBoolean("completion_permission_asked", true).apply()
+            requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 4210)
+        }
     }
     override fun onSaveInstanceState(state:Bundle) {state.putInt("page",page);super.onSaveInstanceState(state)}
     override fun onResume() { super.onResume(); if(::bottom.isInitialized) render() }
@@ -289,6 +295,10 @@ class MainActivity : Activity() {
 
     private fun tasks() {
         rowTitle("할 일 동기화")
+        action("완료 팝업 알림 설정") {
+            startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+        }
         addCard("휴대폰 중심으로 사용",TaskSupport.mobileGuidance)
         addCard("계정 데이터 기반 완료","게임 초기화 전에는 체크하지 않고, 동일 회차는 한 번만 처리해요.")
         addCard("가챠 자동 관리","시작일은 Todoist 날짜, 종료되면 앱에서 자동 완료해요.")
