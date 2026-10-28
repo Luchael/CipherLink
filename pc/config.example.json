@@ -16,7 +16,8 @@
       "enabled": false
     },
     "stella": {
-      "enabled": false
+      "source": "ennead",
+      "enabled": true
     }
   },
   "window_titles": {

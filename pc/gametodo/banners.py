@@ -122,6 +122,11 @@ def parse_banners(html: str, game: str, game_name: str, base_url: str, *, versio
 
 def fetch_banners(http, game: str, cfg: dict, *, now=None):
     """공개 페이지는 ETag/Last-Modified 캐시 이용. 인증/게임 로그인 불필요."""
+    if game == 'stella' and cfg.get('enabled', False):
+        from .stella_banners import SOURCE, parse
+        if cfg.get('source') != 'ennead':
+            raise UnsupportedBannerSource('스텔라 KR 배너 출처 설정 필요')
+        return parse(http.request(SOURCE, cache=True), now or datetime.now(KST))
     if game not in SOURCE_KEYS or not cfg.get("enabled", False):
         return []
     # 사용자가 명조의 글로벌/CN 공통 가챠 일정 사용을 허용했다.

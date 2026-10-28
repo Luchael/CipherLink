@@ -1,0 +1,182 @@
+{
+  "current": [
+    {
+      "name": "별의 발자취 인연의 재회",
+      "bannerType": "1주년 선택 모집",
+      "startTime": "2026-10-20T12:00:00+08:00",
+      "endTime": "2026-11-10T10:59:59+08:00",
+      "rateUp": {
+        "fiveStar": null,
+        "fourStar": null
+      }
+    },
+    {
+      "name": "마주한 기원의 검",
+      "bannerType": "여행가 기간 한정 모집",
+      "startTime": "2026-10-20T12:00:00+08:00",
+      "endTime": "2026-11-10T10:59:59+08:00",
+      "rateUp": {
+        "fiveStar": {
+          "packageId": 1016211,
+          "entries": [
+            {
+              "id": 162,
+              "name": "세이나(기원)",
+              "element": "빛"
+            }
+          ]
+        },
+        "fourStar": {
+          "packageId": 1016212,
+          "entries": [
+            {
+              "id": 107,
+              "name": "틸리아",
+              "element": "빛"
+            },
+            {
+              "id": 116,
+              "name": "레이센",
+              "element": "땅"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "빛을 타고 떠오른 별의 파편",
+      "bannerType": "여행가 기간 한정 모집",
+      "startTime": "2026-10-27T12:00:00+08:00",
+      "endTime": "2026-11-17T10:59:59+08:00",
+      "rateUp": {
+        "fiveStar": {
+          "packageId": 1111511,
+          "entries": [
+            {
+              "id": 115,
+              "name": "호타루",
+              "element": "빛"
+            }
+          ]
+        },
+        "fourStar": {
+          "packageId": 1111512,
+          "entries": [
+            {
+              "id": 107,
+              "name": "틸리아",
+              "element": "빛"
+            },
+            {
+              "id": 116,
+              "name": "레이센",
+              "element": "땅"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "검끝에 담긴 의지",
+      "bannerType": "레코드 기간 한정 모집",
+      "startTime": "2026-10-20T12:00:00+08:00",
+      "endTime": "2026-11-10T10:59:59+08:00",
+      "rateUp": {
+        "fiveStar": {
+          "packageId": 2016211,
+          "entries": [
+            {
+              "id": 214066,
+              "name": "앞길을 밝히는 샛별",
+              "element": "빛"
+            }
+          ]
+        },
+        "fourStar": {
+          "packageId": 2016212,
+          "entries": [
+            {
+              "id": 213005,
+              "name": "★~펑펑 소녀~★",
+              "element": "빛"
+            },
+            {
+              "id": 213020,
+              "name": "플래시 고스트",
+              "element": "땅"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "저 뭇별에 닿을 수 있다면",
+      "bannerType": "레코드 기간 한정 모집",
+      "startTime": "2026-10-27T12:00:00+08:00",
+      "endTime": "2026-11-17T10:59:59+08:00",
+      "rateUp": {
+        "fiveStar": {
+          "packageId": 2111511,
+          "entries": [
+            {
+              "id": 214051,
+              "name": "별이 향하는 곳",
+              "element": "빛"
+            }
+          ]
+        },
+        "fourStar": {
+          "packageId": 2111512,
+          "entries": [
+            {
+              "id": 213006,
+              "name": "굿나잇",
+              "element": "빛"
+            },
+            {
+              "id": 213014,
+              "name": "기사의 대장장이",
+              "element": "땅"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "upcoming": [],
+  "ended": [
+    {
+      "name": "찬란한 에메랄드의 이데아",
+      "bannerType": "여행가 기간 한정 모집",
+      "startTime": "2026-01-13T12:00:00+08:00",
+      "endTime": "2026-02-03T10:59:59+08:00",
+      "rateUp": {
+        "fiveStar": {
+          "packageId": 1011011,
+          "entries": [
+            {
+              "id": 110,
+              "name": "피렌",
+              "element": "어둠"
+            }
+          ]
+        },
+        "fourStar": {
+          "packageId": 1011012,
+          "entries": [
+            {
+              "id": 142,
+              "name": "코제트",
+              "element": "어둠"
+            },
+            {
+              "id": 116,
+              "name": "레이센",
+              "element": "땅"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

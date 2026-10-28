@@ -12,7 +12,7 @@ DEFAULT_GAMES = {
     "endfield": {"enabled": True, "name": "명일방주: 엔드필드", "source": "pickupcal", "slug": "endfield"},
     "reverse1999": {"enabled": False, "name": "리버스: 1999", "source": "unverified", "slug": ""},
     "arknights": {"enabled": False, "name": "명일방주", "source": "unverified", "slug": ""},
-    "stella": {"enabled": False, "name": "스텔라 소라", "source": "unverified", "slug": ""},
+    "stella": {"enabled": True, "name": "스텔라 소라", "source": "ennead", "slug": ""},
 }
 
 

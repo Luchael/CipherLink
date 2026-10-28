@@ -1,5 +1,9 @@
 package com.gametodo.nativeapp
 
+object HttpApi {
+    fun request(url: String): String = error("Network disabled in parser test")
+}
+
 /** Parser tests must never enter Todoist or Android persistence paths. */
 class TodoistApi {
     fun tasks(): List<TodoTask> = error("Todoist is disabled in the banner parser test")

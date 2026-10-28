@@ -111,7 +111,9 @@ class CoreTests(unittest.TestCase):
         observer = Observer(settings, todo, DummyStore())
         self.assertEqual(observer.evaluate("genshin", "일일 의뢰: 4/4 완료"), [])
         self.assertEqual(observer.evaluate("genshin", "일일 의뢰 - 모든 보상을 수령했습니다 / 수령 가능"), [])
-        with patch("gametodo.observer.time.time", side_effect=[100.0, 115.0]):
+        with patch("gametodo.observer.time.time", side_effect=[100.0, 115.0]), \
+                patch("gametodo.observer.datetime", wraps=datetime) as clock:
+            clock.now.return_value = datetime(2026, 10, 28, 12, tzinfo=KST)
             self.assertEqual(observer.evaluate("genshin", "일일 의뢰 모든 보상을 수령했습니다"), [])
             self.assertEqual(observer.evaluate("genshin", "일일 의뢰 모든 보상을 수령했습니다"), ["[원신] 일퀘"])
         self.assertEqual(len(todo.closed), 1)

@@ -60,7 +60,7 @@ def sync_banners(settings, store, *, dry_run=False, now=None, api=None):
     failures = {}
     unsupported = {}
     for game, cfg in settings["game_settings"].items():
-        if game not in ("genshin", "hsr", "zzz", "wuthering", "limbus", "endfield"):
+        if game not in ("genshin", "hsr", "zzz", "wuthering", "limbus", "endfield", "stella"):
             continue
         if not cfg.get("enabled", False):
             continue
