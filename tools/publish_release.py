@@ -40,7 +40,7 @@ def main():
         if private != 'true': raise SystemExit('Repository is still public; the release remains a draft')
         metadata=json.loads(command(['gh','release','view',tag,'--repo',repo,'--json','isDraft,assets'],'Release asset check'))
         names={asset['name'] for asset in metadata['assets']}
-        if not {'CipherLink-Windows.exe','CipherLink-Android.apk','SHA256SUMS.txt','update.json'}.issubset(names):
+        if not {'CipherLink-Windows-Setup.exe','CipherLink-Windows.exe','CipherLink-Android.apk','SHA256SUMS.txt','update.json'}.issubset(names):
             raise SystemExit('Both binaries, checksums and metadata are required')
         if not metadata['isDraft']: raise SystemExit('Release is already published; no changes made')
         command(['gh','release','edit',tag,'--repo',repo,'--draft=false','--latest'],'Private release publication')

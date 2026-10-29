@@ -1,52 +1,37 @@
-# 설치 파일과 버전 관리
+# 설치·업데이트·제거
 
 ## 다운로드
 
-[최신 버전](https://github.com/Luchael/CipherLink/releases/latest)에서 **CipherLink-Windows.exe** 또는 **CipherLink-Android.apk**를 누릅니다. GitHub **Assets** 목록에서 받으면 됩니다. 소스 ZIP을 받을 필요가 없습니다.
+[저장소 첫 화면](https://github.com/Luchael/CipherLink#readme)의 **Windows 설치·업데이트 다운로드**를 누른다. 버튼은 실제 릴리스에 첨부된 파일만 연결한다. 초안은 저장소 소유자 계정으로 GitHub 로그인해야 보인다. README의 버전 상세 링크에서 Assets를 펼쳐도 된다. 소스 ZIP은 설치 파일이 아니다.
 
-사용자는 전체 비공개 배포를 선택했습니다. GitHub 소유자 계정으로 로그인해야 비공개 저장소와 파일이 보입니다. Codex는 사용자의 GitHub 연결 권한으로 접근하며 별도 사람 계정/협업자를 추가하지 않습니다.
+저장소는 현재 공개지만 설치 파일은 **초안 릴리스**에 보관한다. 사용자 요청대로 바이너리를 공개 게시하지 않는다. 저장소 공개 범위 변경과 별도 비공개 다운로드 저장소 생성은 연결 권한에서 403으로 거부됐다. 계정에 다른 협업자를 추가하지 않는다.
 
-2026-10-29: 현재 GitHub 연결은 관리 API가 403을 반환하여 공개 범위 변경을 수행하지 못했습니다. 저장소 소유자가 [Settings](https://github.com/Luchael/CipherLink/settings) → 맨 아래 **Danger Zone → Change repository visibility → Make private**로 바꿔야 합니다. 그 전에는 새 바이너리를 **초안 릴리스에만** 보관하며 자동 게시하지 않습니다.
+APK 업로드 주소 `uploads.github.com`은 현재 클라우드 네트워크에서 403으로 차단돼 있다. 허용 항목은 환경 설정 초안에 저장했으나 실제 적용은 별도다. 적용 후 기존 서명으로 확인한 APK를 같은 릴리스에 첨부하면 README가 실제 APK 링크도 표시한다. 다른 서버·공개 저장소에 임의로 APK를 게시하지 않는다.
 
-## 업데이트
+## Windows 설치판
 
-- 앱 **설정 → 최신 버전 다운로드**에서 현재 버전과 릴리스 페이지를 확인합니다.
-- Android: 기존 앱을 삭제하지 않고 새 APK를 열어 업데이트합니다. 휴대폰이 설치 승인을 받습니다. 패키지/서명이 다르면 중단합니다.
-- Windows: 앱을 종료한 뒤 EXE를 교체합니다. 기존 설정/DB는 보존합니다. Python/pip 설치는 필요 없습니다.
-- 새 버전 알림: GitHub 저장소 **Watch → Custom → Releases**. GitHub의 계정 알림 설정에 따라 알림/메일이 도착합니다.
-- 전체 비공개 방식에서는 앱이 GitHub 토큰을 별도로 받지 않으므로 인증 없는 자동 버전 조회·다운로드와 무인 설치는 제공하지 않습니다. 앱에 GitHub 비밀번호/토큰을 입력하지 마세요.
+1. `CipherLink-Windows-Setup.exe`를 실행한다. 한국어 설치 화면이며 관리자 권한·Python 설치가 필요 없다.
+2. 처음에는 현재 사용자의 `%LOCALAPPDATA%\Programs\CipherLink`에 설치한다. 시작 메뉴에 사이퍼링크 바로 가기를 추가하며 바탕 화면 바로 가기는 선택이다.
+3. 새 버전 설치 파일을 실행하면 기존 설치 위치를 찾아 업데이트한다. 이전 앱을 실행 중이면 종료 안내를 따른다. 이전 버전으로의 설치는 거부한다.
+4. 제거는 **Windows 설정 → 앱 → 설치된 앱 → 사이퍼링크 → 제거**를 사용한다. 설치 폴더의 `unins000.exe`도 같은 제거 기능이다.
 
-## 버전 관리와 배포 — 개발자
+기본 계정·설정·DB 폴더 `~/.gametodo`는 설치·업데이트·제거 시 삭제하지 않는다. 무설치판에서 별도로 두었던 로컬 `config.json`도 원본 위치에 남으며, 임의 폴더 검색이나 비밀정보 복사는 하지 않는다. 무설치판의 시작 프로그램 경로가 등록돼 있으면 설치 경로로 갱신하며 Windows에서 사용 안 함으로 선택한 상태를 바꾸지 않는다. 자동 시작을 새로 켜지는 않는다. 제거 시 자신의 설치 경로를 가리키는 시작 항목만 지우고 다른 무설치판을 가리키는 항목은 보존한다.
 
-PC `gametodo.__version__`와 Windows 버전 리소스, Android `versionName`을 함께 올립니다. Android `versionCode`는 반드시 증가시킵니다. `docs/releases/vX.Y.Z.md`에 변경 내용을 기록하고 커밋합니다.
+Windows 무설치 EXE도 별도 제공한다. 이 파일은 설치·제거 등록을 하지 않는다. 종료 후 EXE를 교체해 업데이트하고, 사용하지 않으면 해당 EXE를 지운다. 설치판과 동시에 실행하지 않는다.
 
-서명이 유지되는 기존 Android 빌드 환경에서 다음 명령을 실행합니다.
+## Android
 
-```bash
-python tools/publish_release.py X.Y.Z --output /workspace/artifacts
-```
+APK를 열어 기존 앱 위에 업데이트한다. 같은 패키지·서명이 필수이며 versionCode가 증가해야 한다. 앱 삭제는 Android의 일반 앱 제거 기능을 사용하며 앱 데이터를 지우므로 업데이트를 위해 먼저 삭제하지 않는다. 원본 0.10.2와 설치 성공한 별도 설치판은 패키지/서명 호환성을 구별한다. 사용자에게 토큰이나 서명키를 요구하지 않는다.
 
-이 명령은 깨끗한 작업 트리/일치하는 버전/릴리스 노트를 확인하고, 기존 서명으로 APK를 빌드합니다. APK 공개 메타데이터(패키지·버전·서명 인증서 해시)와 무결성을 검사한 뒤 실제 Git 버전 태그를 원본 커밋에 만들어 푸시하고 초안 릴리스를 만든 뒤 APK를 업로드합니다. 서명 키는 이 환경에만 남으며 저장소/CI에 올리지 않습니다.
+앱 사용에 GitHub 계정은 필요 없으며 다운로드 시에만 로그인한다. 무인 설치·GitHub 토큰 입력은 제공하지 않는다.
 
-이후 GitHub Actions **Publish versioned EXE and APK**가 해당 태그의 소스를 체크아웃하여 Windows 회귀 테스트와 EXE 빌드를 실행합니다. EXE·APK·SHA256SUMS.txt·update.json이 준비되고 저장소가 비공개일 때만 최신 릴리스를 게시합니다. 실패하면 초안으로 남습니다. 이미 게시한 릴리스 파일은 덮어쓰지 않습니다. 초안 재개 시 기존 EXE는 재사용합니다.
+## 개발·버전 관리
 
-초안 준비 후 공개 범위를 비공개로 바꿨다면 다음 명령으로 남은 게시만 처리할 수 있습니다.
+- PC·Android 버전과 Windows EXE 리소스 버전을 일치시키고 Android versionCode를 증가시킨다. `tools/release_metadata.py`가 오래된 EXE 리소스를 거부한다.
+- `tools/publish_release.py`는 기존 Android 서명으로 APK를 확인하고 버전 태그·초안을 만든다. 업로드 차단 해제 후 `--resume`으로 기존 초안에 APK를 첨부할 수 있다.
+- `release.yml`은 태그의 Windows EXE와 Inno Setup 설치 파일을 만든다. `tools/build_windows_installer.ps1`은 EXE의 실제 ProductVersion을 확인한다.
+- Windows CI는 0.11.5 EXE로 만든 이전 설치판→현재 설치판 업데이트→낮은 버전 거부→제거·재설치를 실행한다. 기존 설치 경로 자동 발견, Windows 제거 등록, 사용자 데이터 보존과 다른 무설치 시작 항목 보존을 확인한 뒤 설치 파일을 첨부한다. CI에서는 게임/Todoist 계정을 연결하거나 앱을 실행하지 않는다.
+- EXE·설치 파일·APK·체크섬이 준비되고 저장소가 비공개일 때만 릴리스 게시가 가능하다. 그 전에는 초안이다.
+- `tools/update_download_links.py VERSION --github`는 현재 실제 첨부파일을 읽어 README 다운로드 부분만 갱신한다. 존재하지 않는 APK나 `/latest` 링크를 만들지 않으며 이전 버전 작업이 최신 링크를 덮어쓰지 않는다.
 
-```bash
-python tools/publish_release.py X.Y.Z --finalize
-```
-
-현재 GitHub 연결에는 Actions 비밀 저장소 등록 권한도 없습니다. 이 때문에 APK 서명은 로컬에서 계속하고, Windows 빌드·체크섬·게시를 CI가 맡습니다. 사용자는 서명 키나 계정 토큰을 전달할 필요가 없습니다. 서명 키가 사라지면 동일 패키지 업데이트가 불가능하므로 임의로 새 키로 교체하지 않습니다.
-
-이전 버전은 [Releases](https://github.com/Luchael/CipherLink/releases)에 남습니다. 낮은 Android 버전을 기존 앱 위에 설치하는 다운그레이드는 일반적으로 허용되지 않습니다. 테스트/빌드 통과가 실계정·실기기 동작을 보증하지 않습니다.
-
-
-업로드가 네트워크 정책으로 차단되면 `uploads.github.com` 허용이 필요합니다. 필요한 도메인은 환경 설정 초안에 추가했으며 저장/적용 전에는 현재 실행 환경이 달라지지 않습니다. 접근이 적용되면 `python tools/publish_release.py X.Y.Z --resume`으로 같은 초안을 재개합니다. 기존 서명을 다시 검사한 APK만 첨부합니다. APK가 없는 동안에도 Windows EXE를 먼저 빌드해 초안에 보관할 수 있습니다.
-
-### 현재 준비 결과 · 2026-10-29 KST
-
-- PC 테스트 244개와 Android 빌드·서명·버전 29→31 업데이트 메타데이터 검사 통과. PC 설정의 다운로드 버튼을 실제 Tk 화면에서 클릭하고 기대한 브라우저 주소 호출을 모의 검증했다.
-- [Windows 0.11.3 릴리스 CI](https://github.com/Luchael/CipherLink/actions/runs/40792474080) 성공. Windows EXE(65,739,572바이트)를 v0.11.3 초안에 첨부했다.
-- [소유자 전용 릴리스 초안](https://github.com/Luchael/CipherLink/releases). 현재 EXE만 있으며 APK 첨부와 최종 체크섬 묶음은 대기 중이다. 저장소가 아직 공개이므로 게시하지 않았다. README의 `/latest` 버튼은 게시 완료 후 활성화된다.
-- APK는 채팅의 `CipherLink-0.11.3.apk`로 우선 제공한다. SHA256 `f43f3881a574db6eecc7a580377be2b55e3a1fde89f58e0ca60b258750e8f3ac`.
-- 남은 외부 조건: 소유자의 저장소 **Make private**, 환경 설정의 GitHub 파일 전송 도메인 적용. 이후 `--resume`으로 APK 첨부/기존 EXE 재사용/체크섬 생성과 비공개 게시를 마무리한다. 실기기·Windows EXE 실제 실행은 미검증이다.
+실제 사용자 Windows의 로그인·SmartScreen·사용 중인 앱 종료·계정 유지와 Android 기기 설치는 CI 빌드/설치 검사와 별도로 확인한다.

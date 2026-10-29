@@ -31,6 +31,15 @@ class ReleaseMetadataTests(unittest.TestCase):
             exe.write_bytes(b'')
             with self.assertRaises(ValueError):release.manifest(folder,'0.11.3',31)
 
+    def test_stale_windows_version_resource_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary)
+            (root/'pc/gametodo').mkdir(parents=True);(root/'android/app').mkdir(parents=True);(root/'pc/assets').mkdir()
+            (root/'pc/gametodo/__init__.py').write_text('__version__ = "0.11.7"')
+            (root/'android/app/build.gradle.kts').write_text('versionName = "0.11.7"\nversionCode = 35')
+            (root/'pc/assets/version_info.txt').write_text('filevers=(0,11,5,0)')
+            with self.assertRaises(ValueError):release.project_version(root)
+
     def test_mismatched_versions_fail(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary)
@@ -70,7 +79,7 @@ class PrivatePublicationTests(unittest.TestCase):
             import publish_release
         version,_=release.project_version(ROOT)
         metadata={'isDraft':True,'assets':[{'name':name} for name in
-                  ['CipherLink-Windows.exe','CipherLink-Android.apk','SHA256SUMS.txt','update.json']]}
+                  ['CipherLink-Windows-Setup.exe','CipherLink-Windows.exe','CipherLink-Android.apk','SHA256SUMS.txt','update.json']]}
         with patch.object(sys,'argv',['publish_release.py',version,'--finalize']), \
              patch.object(publish_release,'command',side_effect=['true',json.dumps(metadata),'']) as remote:
             publish_release.main()

@@ -15,6 +15,14 @@ def project_version(root=ROOT):
     code = int(re.search(r'versionCode = (\d+)', android).group(1))
     if pc != mobile or not re.fullmatch(r'(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', pc):
         raise ValueError('PC/Android semantic versions must match')
+    resource=root/'pc/assets/version_info.txt'
+    if resource.is_file():
+        text=resource.read_text(encoding='utf-8')
+        expected=tuple(map(int,pc.split('.')))+(0,)
+        for value in re.findall(r'(?:filevers|prodvers)=\(([^)]+)\)',text):
+            if tuple(map(int,value.split(',')))!=expected:raise ValueError('Windows file version does not match source')
+        for value in re.findall(r"StringStruct\('(?:FileVersion|ProductVersion)', '([^']+)'\)",text):
+            if value!=pc+'.0':raise ValueError('Windows display version does not match source')
     return pc, code
 
 
@@ -30,6 +38,8 @@ def manifest(directory, version, code):
     assets = {'windows': 'CipherLink-Windows.exe', 'android': 'CipherLink-Android.apk'}
     if not all((directory/name).is_file() and (directory/name).stat().st_size > 0 for name in assets.values()):
         raise ValueError('Both non-empty EXE and APK assets are required')
+    installer='CipherLink-Windows-Setup.exe'
+    if (directory/installer).is_file():assets['windows_installer']=installer
     return {'version': version, 'android_version_code': code,
             **{platform: {'name': name, 'sha256': digest(directory/name)} for platform, name in assets.items()}}
 
@@ -46,7 +56,7 @@ def main():
         result = manifest(args.directory,version,code)
         (args.directory/'update.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         (args.directory/'SHA256SUMS.txt').write_text(''.join(
-            f"{result[p]['sha256']}  {result[p]['name']}\n" for p in ('windows','android')),encoding='utf-8')
+            f"{result[p]['sha256']}  {result[p]['name']}\n" for p in ('windows_installer','windows','android') if p in result),encoding='utf-8')
     print(f'RELEASE_VERSION_OK {version}; Android code {code}')
 
 

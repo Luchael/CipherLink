@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version matching the source and signed APK draft (for example 0.11.3)'
+        description: 'Version matching the source and signed APK draft (for example 0.11.7)'
         required: true
         type: string
 
@@ -31,6 +31,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: v${{ inputs.version }}
+      # The app stays on its immutable version tag. Packaging is pinned separately
+      # to this workflow run's exact commit so draft installer fixes are reproducible.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: installer-tools
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            pc/installer/
+            pc/assets/cipherlink.ico
+            tools/build_windows_installer.ps1
+            tools/test_windows_installer.ps1
+            tools/update_download_links.py
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -79,6 +92,23 @@ jobs:
           Copy-Item pc/dist/CipherLink.exe publish/CipherLink-Windows.exe
           gh release upload "v$env:RELEASE_VERSION" publish/CipherLink-Windows.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          ./installer-tools/tools/build_windows_installer.ps1 -Version $env:RELEASE_VERSION -InputExecutable publish/CipherLink-Windows.exe -OutputDirectory publish
+          New-Item -ItemType Directory -Path previous -Force | Out-Null
+          gh release download v0.11.5 --pattern CipherLink-Windows.exe --dir previous
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./installer-tools/tools/build_windows_installer.ps1 -Version 0.11.5 -InputExecutable previous/CipherLink-Windows.exe -OutputDirectory previous/setup
+      - name: Verify install upgrade uninstall and preserved settings
+        shell: pwsh
+        run: |
+          ./installer-tools/tools/test_windows_installer.ps1 -PreviousInstaller previous/setup/CipherLink-Windows-Setup.exe -CurrentInstaller publish/CipherLink-Windows-Setup.exe -CurrentVersion $env:RELEASE_VERSION
+      - name: Attach verified Windows installer
+        shell: pwsh
+        run: |
+          gh release upload "v$env:RELEASE_VERSION" publish/CipherLink-Windows-Setup.exe publish/CipherLink-Windows-Setup.exe.sha256 --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Keep incomplete release private
         if: steps.draft.outputs.has_apk != 'true'
         shell: pwsh
@@ -102,4 +132,9 @@ jobs:
             exit 0
           }
           gh release edit "v$env:RELEASE_VERSION" --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Update README with actual download files
+        shell: pwsh
+        run: |
+          python installer-tools/tools/update_download_links.py $env:RELEASE_VERSION --github
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
