@@ -50,8 +50,8 @@ object RealTimeMemo {
             "hsr" -> {
                 gauge("시뮬레이션 우주·화폐 전쟁 통합 주간 포인트", "current_rogue_score", "rogue_score", "|",
                     "max_rogue_score", "rogue_max_score")
-                gauge("차분화 우주 보너스 포인트", "current_bonus_synchronicity_points", "|",
-                    "max_bonus_synchronicity_points")
+                gauge("차분화 우주 보너스 포인트", "current_bonus_synchronicity_points", "rogue_tourn_weekly_cur", "|",
+                    "max_bonus_synchronicity_points", "rogue_tourn_weekly_max")
                 gauge("역전의 여운 주간 할인 잔여", "remaining_weekly_discounts", "weekly_cocoon_cnt", "|",
                     "max_weekly_discounts")
                 gauge("탐사 파견", "accepted_expedition_num", "|", "total_expedition_num")

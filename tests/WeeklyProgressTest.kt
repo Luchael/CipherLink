@@ -38,6 +38,8 @@ fun main() {
         "remaining_weekly_discounts" to 1))?.current == 0)
     check(gauge(obj("current_rogue_score" to 5000, "max_rogue_score" to 12000,
         "remaining_weekly_discounts" to 0))?.current == 1)
+    check(gauge(obj("current_rogue_score" to 18000,"weekly_cocoon_cnt" to 0,
+        "weekly_cocoon_limit" to 2)) == null)
     // 기존의 화폐 전쟁 전용 필드만 있고 실제 통합 포인트가 없으면 완료 금지.
     check(gauge(obj("currency_wars" to obj("weekly_score" to 99999),
         "remaining_weekly_discounts" to 0)) == null)

@@ -113,7 +113,8 @@ class HoyoClientContractTests(unittest.TestCase):
             def set_cookies(self, cookie):
                 pass
 
-            async def get_genshin_notes(self, uid):
+            async def get_genshin_notes(self, uid, **kwargs):
+                assert kwargs == {'return_raw_data':True,'autoauth':False,'lang':'ko-kr'}
                 return 'synthetic-notes'
 
         with patch.dict('sys.modules', {'genshin': SimpleNamespace(Client=Client)}), \

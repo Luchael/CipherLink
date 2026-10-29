@@ -182,7 +182,7 @@ object EndgameRecords {
         val end = period.second
         val key = if (start != null && end != null && end > start) "$mode:$start:$end" else null
         return AccountGauge(role.game, role.uid, mode, current, goal,
-            periodKey = key, periodStartMs = start, periodEndMs = end)
+            periodKey = key, periodStartMs = start, periodEndMs = end, displayDetail = scoreDetail(mode,payload))
     }
 
     /** 환상극 data 배열에서 schedule_type=1 회차, 아니면 명확하게 가장 최신 회차를 채택. */
@@ -284,6 +284,27 @@ object EndgameRecords {
             else -> 0
         } }.sum()
         return result to 9
+    }
+
+    /** Supplementary raw points only. Completion still uses verified grades/stars. */
+    fun scoreDetail(mode: String, payload: JSONObject): String {
+        val root=currentRecord(payload,mode)
+        val record=root.optJSONObject("hadal_info_v2") ?: root.optJSONObject("hadal_info_v1") ?: root
+        fun points(rows: JSONArray?, suffix: String): String {
+            if(rows==null) return ""
+            return (0 until rows.length()).mapNotNull {i->
+                val value=rows.optJSONObject(i)?.let {readNumber(it,"score")}
+                if(value==null || value<0) null else "${i+1}$suffix ${String.format(java.util.Locale.KOREA,"%,d",value)}점"
+            }.joinToString(" · ")
+        }
+        return when(mode) {
+            "shiyu" -> points((record.optJSONObject("fitfh_layer_detail") ?: record.optJSONObject("fifth_layer_detail"))
+                ?.optJSONArray("layer_challenge_info_list"),"번 방")
+            "deadly" -> listOf("일반" to "list","절망" to "hard_list").mapNotNull { (name,key)->
+                points(record.optJSONArray(key),"번").takeIf {it.isNotBlank()}?.let {"$name $it"}
+            }.joinToString(" · ")
+            else -> ""
+        }
     }
 
     /** normal list / hard_list를 분리해서 보여준다. 절망 기록은 보상 완료 조건에 넣지 않는다. */

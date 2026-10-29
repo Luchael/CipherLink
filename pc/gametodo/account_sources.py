@@ -27,7 +27,7 @@ async def _read_hoyolab_async(uid, cookie, game):
         method = next((getattr(client, n) for n in methods[game] if callable(getattr(client, n, None))), None)
         if method is None:
             raise RuntimeError("설치된 genshin.py 라이브러리가 이 게임의 상태 조회를 지원하지 않습니다")
-        notes = await method(int(uid))
+        notes = await method(int(uid),return_raw_data=True,autoauth=False,lang="ko-kr")
         from .endgame_records import fetch as endgame_fetch
         endgame, errors = await endgame_fetch(client, uid, game)
         return notes, endgame, errors
@@ -67,6 +67,7 @@ def read_hoyolab(game, config):
             expiry[mode] = row.ends
     details = dict(status.details)
     details['endgame_diagnostics'] = errors
+    details['endgame_display'] = {mode: row.display_detail for mode,row in endgames.items()}
     details['endgame_scores'] = {k: f"{v.value}/{v.goal} ({v.basis}; {'현재' if v.current() else '회차 미확인'})" for k,v in endgames.items()}
     return uid, replace(status, metrics=metrics, metric_expiries=expiry, details=details)
 

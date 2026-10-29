@@ -23,7 +23,9 @@ data class AccountGauge(
     // 엔드 콘텐츠는 일자 초기화가 아닌 게임 서버가 제공한 시즌/회차 기준으로 판단한다.
     val periodKey: String? = null,
     val periodStartMs: Long? = null,
-    val periodEndMs: Long? = null
+    val periodEndMs: Long? = null,
+    val displayDetail: String = "",
+    val displayTitle: String = ""
 ) {
     val filled: Boolean get() = maximum > 0 && current >= maximum && current >= 0
 }
@@ -249,7 +251,7 @@ object HoyoProvider {
                 WeeklyProgress.hsr(note,role)?.let { gauges.add(it) }
                 add("rogue_weekly", readNumber(note,"current_rogue_score","rogue_score"), WeeklyProgress.HSR_WEEKLY_POINTS)
                 val remaining = readNumber(note,"remaining_weekly_discounts","weekly_cocoon_cnt")
-                if (remaining != null && remaining in 0..3 && (readNumber(note,"max_weekly_discounts") ?: 3) == 3)
+                if (remaining != null && remaining in 0..3 && (readNumber(note,"max_weekly_discounts","weekly_cocoon_limit") ?: 3) == 3)
                     add("weekly_boss_used", 3 - remaining, 3)
             }
             "zzz" -> {
@@ -259,6 +261,10 @@ object HoyoProvider {
                 add("weekly_task", readNumber(note, "weekly_task.cur_point"),
                     readNumber(note, "weekly_task.max_point"))
                 WeeklyProgress.zzz(note,role)?.let { gauges.add(it) }
+                add("bounty_points",readNumber(note,"bounty_commission.total_score","bounty_commission.current_score",
+                    "bounty_commission.score","bounty_commission.points","hollow_zero.bounty_points"),WeeklyProgress.ZZZ_BOUNTY)
+                add("bounty_tasks",readNumber(note,"bounty_commission.num","hollow_zero.bounty_commission.cur_completed"),
+                    readNumber(note,"bounty_commission.total","hollow_zero.bounty_commission.total"))
             }
         }
         return gauges
@@ -406,12 +412,7 @@ object EndfieldProvider {
         val detail = signed("/api/v1/game/endfield/card/detail", s, query,
             "3_${role.uid}_${role.server}").optJSONObject("data")
                 ?: throw IllegalStateException("SKPORT 캐릭터 상세 data 없음")
-        val daily = detail.optJSONObject("detail")?.optJSONObject("dailyMission")
-            ?: detail.optJSONObject("dailyMission") ?: return emptyList()
-        val cur = readNumber(daily,"dailyActivation")
-        val max = readNumber(daily,"maxDailyActivation")
-        return if (cur != null && max != null && max > 0)
-            listOf(AccountGauge("endfield",role.uid,"daily",cur,max)) else emptyList()
+        return EndfieldNotes.gauges(role,detail)
     }
 }
 

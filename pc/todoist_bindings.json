@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "origin": "Todoist DoDoGames screenshots 2026-10-28",
+  "origin": "Todoist DoDoGames screenshots 2026-10-28 + user weekly task 2026-10-29",
   "matching": "exact title + game prefix/label; no new Todoist tasks are created",
   "excluded_games": [],
   "tasks": [
@@ -337,6 +337,15 @@
       "status": "manual",
       "aliases": [],
       "note": "사용자가 직접 확인 후 수동 완료. 개인 진행도 API와 자동 가챠 수집은 연결하지 않습니다."
+    },
+    {
+      "game": "endfield",
+      "title": "[엔필] 주간퀘스트",
+      "cadence": "weekly",
+      "metric": "weekly_mission",
+      "status": "auto",
+      "aliases": [],
+      "note": "사용자 확인: 매주 월요일. weeklyMission.score/total 목표 달성 시, 기존 KST 초기화/유예/예정일/중복 방지 적용"
     }
   ]
 }

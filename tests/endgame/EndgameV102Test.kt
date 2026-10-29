@@ -25,6 +25,7 @@ fun main() {
         "start_time" to now-900000,"end_time" to now-1000)
     val p=EndgameRecords.parse(role,"deadly",prior)!!
     check(p.current==9 && !EndgameRecords.currentPeriod(p,System.currentTimeMillis()))
+    check(p.displayDetail.contains("일반 1번 53,174점") && p.displayDetail.contains("절망 1번 33,930점"))
     check(EndgameRecords.deadlyDiagnostic(prior).contains("절망 33930점/3별"))
     println("Endgame v0.10.2 current unplayed / normal / adversity tests OK")
 }

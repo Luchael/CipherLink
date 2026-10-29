@@ -193,7 +193,7 @@ class TodoistApi(private val context: Context) {
         val uuid = SharedCommandIds.uuid5("item_add", stable)
         val temp = SharedCommandIds.uuid5("banner-temp", stable)
         val args = JSONObject().put("content",banner.title).put("description",banner.description)
-            .put("labels",JSONArray().put(banner.label)).put("project_id",projectId).put("section_id",sectionId)
+            .put("labels",JSONArray(BannerLabels.merge(banner.label))).put("project_id",projectId).put("section_id",sectionId)
             // 일반 날짜는 무료 플랜에서도 사용 가능. deadline_date는 설정하지 않는다.
             .put("due", JSONObject().put("date",banner.startDate))
         val command = JSONArray().put(JSONObject().put("type","item_add").put("uuid",uuid)
@@ -215,12 +215,15 @@ class TodoistApi(private val context: Context) {
     }
 
     /** 이전 버전에서 GameTodo가 만든 자동 가챠만 새 양식으로 이전한다. */
-    fun updateBanner(taskId: String,banner: BannerRecord) {
+    fun updateBanner(taskId: String,banner: BannerRecord,existingLabels: List<String> = emptyList()) {
         val args = JSONObject().put("id",taskId)
+            .put("labels",JSONArray(BannerLabels.merge(banner.label,existingLabels)))
             .put("content",banner.title)
             .put("description",banner.description)
             .put("due",JSONObject().put("date",banner.startDate))
-        val uuid = SharedCommandIds.uuid5("item_update","banner-migrate:$taskId:${banner.key}")
+        val fingerprint = MessageDigest.getInstance("SHA-256").digest(args.toString().toByteArray(Charsets.UTF_8))
+            .joinToString("") {"%02x".format(it.toInt() and 255)}
+        val uuid = SharedCommandIds.uuid5("item_update","banner-migrate:$taskId:${banner.key}:$fingerprint")
         val commands = JSONArray().put(JSONObject().put("type","item_update")
             .put("uuid",uuid).put("args",args))
         val conn = URL("https://api.todoist.com/api/v1/sync").openConnection() as HttpURLConnection

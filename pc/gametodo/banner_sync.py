@@ -112,7 +112,7 @@ def sync_banners(settings, store, *, dry_run=False, now=None, api=None):
             from .models import command_uuid
             temp_id = command_uuid("banner-temp", temp_key)
             args = {"content": b.title, "description": desc,
-                    "labels": [profile.label], "project_id": api.project_id,
+                    "labels": sorted({profile.label, "가챠"}), "project_id": api.project_id,
                     "section_id": api.section_id,
                     "due": {"date": due_date_for(b)}}  # deadline_date는 사용하지 않음.
             new_id = api.command("item_add", args, temp_key, temp_id=temp_id)
@@ -124,7 +124,7 @@ def sync_banners(settings, store, *, dry_run=False, now=None, api=None):
         change = {}
         if prior.get("content") != b.title:
             change["content"] = b.title
-        labels = sorted(set(prior.get("labels") or []) | {profile.label})
+        labels = sorted(set(prior.get("labels") or []) | {profile.label, "가챠"})
         if labels != sorted(set(prior.get("labels") or [])):
             change["labels"] = labels
         desc = description_for(b)

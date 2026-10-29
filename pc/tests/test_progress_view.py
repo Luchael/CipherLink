@@ -13,13 +13,13 @@ class ProgressViewTests(unittest.TestCase):
         self.assertEqual(present('shiyu',1,4).percent,25)
     def test_weekly_rewards_show_remaining_but_fill_after_all_used(self):
         row=present('weekly_boss_used',3,3)
-        self.assertEqual(row.value,'잔여 0 / 3')
+        self.assertEqual(row.value,'3 / 3')
         self.assertEqual(row.percent,100)
         self.assertEqual(row.state,'목표 달성')
-        self.assertEqual(present('weekly_boss_used',0,3).value,'잔여 3 / 3')
+        self.assertEqual(present('weekly_boss_used',0,3).value,'0 / 3')
 
     def test_display_does_not_change_source_metrics(self):
         s=Status('zzz','fixture',Gauge(0,100),metrics={'deadly':Gauge(0,9)})
         rows=status_rows(s)
-        self.assertEqual([r.title for r in rows],['일일 목표','위험한 강습전'])
+        self.assertEqual([r.title for r in rows],['일일 목표','위험한 강습전','시유 방어전'])
         self.assertEqual(s.metrics['deadly'].current,0)

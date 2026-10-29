@@ -26,6 +26,7 @@ class EndgameProgress:
     starts: int | None  # unix seconds
     ends: int | None
     basis: str
+    display_detail: str = ""
     @property
     def filled(self): return self.goal > 0 and self.value >= self.goal
     def current(self, when: datetime | None=None):
@@ -52,6 +53,8 @@ def date_value(value):
         if n>10**12: n//=1000
         return n if 1_500_000_000<=n<=5_000_000_000 else None
     if isinstance(value,dict):
+        # genshin.py adds {timestamp, tzinfo} to Unix timestamps even for raw=True.
+        if 'timestamp' in value:return date_value(value['timestamp'])
         try:
             # HoYoLAB PartialTime sometimes uses year/month/day and nested time values.
             year=int(value['year']); month=int(value['month']); day=int(value['day'])
@@ -165,6 +168,9 @@ def parse(mode, payload):
     elif mode=='shiyu':
         # v1 ratings across seven critical nodes; V2 has a different reward system.
         version=field(record,'hadal_ver')
+        # genshin.py 1.7.31 get_shiyu_defense(raw=True) removes hadal_ver and unwraps v2.
+        if version is None and isinstance(field(record,'fourth_layer_detail'),dict) and isinstance(field(record,'fitfh_layer_detail','fifth_layer_detail'),dict):
+            version='v2'
         if version=='v1' and isinstance(field(record,'hadal_info_v1'),dict):record=field(record,'hadal_info_v1')
         elif version=='v2' and isinstance(field(record,'hadal_info_v2'),dict):record=field(record,'hadal_info_v2')
         rows=field(record,'floors')
@@ -235,7 +241,7 @@ def parse(mode, payload):
         active=[x for x in payload['seasons'] if isinstance(x,dict) and integer(x,'status')==1]
         if len(active)==1:start,end=period(active[0])
     if start is None or end is None or end<=start:start,end=None,None
-    return EndgameProgress(mode,value,maximum,start,end,basis)
+    return EndgameProgress(mode,value,maximum,start,end,basis,score_detail(mode,payload))
 
 async def fetch(client, uid, game):
     """Reuse existing genshin.Client cookie and DS/auth refresh logic. No Todoist mutation."""
@@ -281,3 +287,24 @@ def deadly_detail(payload):
             'normal_score':integer(obj,'total_score') or 0,
             'normal_bosses':n, 'adversity_bosses':h,
             'adversity_optional':True, 'season_start':start,'season_end':end}
+
+
+def score_detail(mode,payload):
+    """Read-only point details; never used as evidence of S grades or completion."""
+    record=choose_record(payload,mode)
+    if mode=='shiyu':
+        record=field(record,'hadal_info_v2','hadal_info_v1') or record
+        rooms=field(record,'fitfh_layer_detail.layer_challenge_info_list','fifth_layer_detail.layer_challenge_info_list')
+        if not isinstance(rooms,list):return ''
+        return ' · '.join(f"{i+1}번 방 {integer(room,'score'):,}점" for i,room in enumerate(rooms)
+                          if integer(room,'score') is not None and integer(room,'score')>=0)
+    if mode=='deadly':
+        pieces=[]
+        for key,title in [('list','일반'),('hard_list','절망')]:
+            rows=field(record,key)
+            if not isinstance(rows,list):continue
+            values=[f"{i+1}번 {integer(row,'score'):,}점" for i,row in enumerate(rows)
+                    if integer(row,'score') is not None and integer(row,'score')>=0]
+            if values:pieces.append(title+' '+', '.join(values))
+        return ' · '.join(pieces)
+    return ''

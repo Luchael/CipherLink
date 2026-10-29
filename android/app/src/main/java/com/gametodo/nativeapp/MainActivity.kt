@@ -232,11 +232,9 @@ class MainActivity : Activity() {
         for((key,name) in GameLookupSettings.names.filterKeys {it in GameLookupSettings.implemented}) {
             toggle(name,"연결된 계정의 진행도를 읽기 전용으로 확인합니다.",GameLookupSettings.enabled(this,key)) {GameLookupSettings.setEnabled(this,key,it)}
         }
-        rowTitle("앱 정보와 업데이트")
+        rowTitle("앱 정보")
         val version=packageManager.getPackageInfo(packageName,0).versionName ?: ""
-        addCard("사이퍼링크 $version","최신 설치 파일과 버전별 변경 내용을 GitHub에서 확인합니다. 비공개 저장소는 브라우저에서 GitHub 로그인이 필요해요.","최신 버전 다운로드") {
-            startActivity(Intent(Intent.ACTION_VIEW,android.net.Uri.parse("https://github.com/Luchael/CipherLink/releases/latest")))
-        }
+        addCard("사이퍼링크 $version","업데이트는 새 APK를 받아 설치하세요. 기존 앱을 삭제하지 않으면 연결 정보를 유지할 수 있어요.")
         action("Todoist 연결 해제") {
             AlertDialog.Builder(this).setTitle("Todoist 연결을 해제할까요?").setMessage("게임 계정과 기존 Todoist 작업은 그대로 유지됩니다.")
                 .setNegativeButton("취소",null).setPositiveButton("연결 해제") {_,_->TodoistAuth(this).logout();render()}.show()
@@ -398,19 +396,24 @@ class MainActivity : Activity() {
             card.addView(label(game?.name ?: "게임 진행도",20f,bold=true))
             if(group.name.isNotBlank()) card.addView(label(group.name,14f,UiKit.MUTED),UiKit.margin(this,4,10))
             if(group.error.isNotBlank()) card.addView(label("기록을 가져오지 못했어요 · ${group.error}",14f,UiKit.MUTED))
-            for(g in group.gauges.distinctBy {it.metric}) {
+            for(g in group.gauges.distinctBy {it.metric}.filter {ProgressPresentation.visible(group.game,it.metric)}) {
                 val row=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL}
-                row.addView(label(ProgressPresentation.title(g.metric),15f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
+                row.addView(label(g.displayTitle.ifBlank {ProgressPresentation.title(group.game,g.metric)},15f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
                 row.addView(label(ProgressPresentation.value(g.metric,g.current,g.maximum),17f,UiKit.BLUE,true))
                 card.addView(row,UiKit.margin(this,14,6))
                 card.addView(ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply {
                     max=1000;progress=ProgressPresentation.fraction(g.current,g.maximum)
                     progressTintList=ColorStateList.valueOf(UiKit.GREEN);progressBackgroundTintList=ColorStateList.valueOf(UiKit.PANEL)
                 },LinearLayout.LayoutParams(-1,dp(7)))
-                val period=if(g.metric !in setOf("daily","weekly","weekly_task","rogue_weekly","weekly_boss_used")) {
+                val period=if(g.metric !in setOf("daily","weekly","weekly_task","rogue_weekly","weekly_boss_used","bounty_tasks","bounty_points","weekly_mission")) {
                     if(EndgameRecords.currentPeriod(g,System.currentTimeMillis())) " · 현재 회차" else " · 회차 확인 필요"
                 } else ""
                 card.addView(label(ProgressPresentation.state(g.current,g.maximum)+period,12f,UiKit.MUTED),UiKit.margin(this,5,4))
+                if(g.displayDetail.isNotBlank()) card.addView(label(g.displayDetail,12f,UiKit.MUTED),UiKit.margin(this,4,4))
+                if(g.metric=="weekly_mission") card.addView(label("매주 월요일 · [엔필] 주간퀘스트 연동",12f,UiKit.MUTED),UiKit.margin(this,4,4))
+                if(g.metric=="weekly_task") card.addView(label("주간 보상 기준 800점 · 전체 상한 ${g.maximum}점",12f,UiKit.MUTED),UiKit.margin(this,4,4))
+                if(g.metric=="weekly_boss_used" || (group.game=="genshin" && g.metric=="weekly"))
+                    card.addView(label("주간 보상 사용 횟수 · 남은 보상 ${g.maximum-g.current}회",12f,UiKit.MUTED),UiKit.margin(this,4,4))
             }
             if(group.memo.isNotEmpty()) {
                 card.addView(label("실시간 메모",15f,bold=true),UiKit.margin(this,18,6))

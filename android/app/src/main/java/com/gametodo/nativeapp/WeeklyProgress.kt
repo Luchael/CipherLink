@@ -38,7 +38,7 @@ object WeeklyProgress {
             score >= maxScore else null
         // 역전의 여운: 남은 *주간 할인 보상* 횟수. 보스 전투 횟수 자체는 API로 확인 불가.
         val remaining = readNumber(note, "remaining_weekly_discounts", "weekly_cocoon_cnt")
-        val maxDiscounts = readNumber(note, "max_weekly_discounts") ?: WEEKLY_BOSSES
+        val maxDiscounts = readNumber(note, "max_weekly_discounts", "weekly_cocoon_limit") ?: WEEKLY_BOSSES
         val bossDone = if (maxDiscounts == WEEKLY_BOSSES && remaining != null &&
             remaining in 0..WEEKLY_BOSSES) remaining == 0 else null
         return both(role, "weekly", scoreDone, bossDone)
@@ -60,11 +60,11 @@ object WeeklyProgress {
             val score = readNumber(note, "current_rogue_score", "rogue_score")
             val maxScore = HSR_WEEKLY_POINTS
             val remain = readNumber(note, "remaining_weekly_discounts", "weekly_cocoon_cnt")
-            val maxBoss = readNumber(note, "max_weekly_discounts") ?: WEEKLY_BOSSES
+            val maxBoss = readNumber(note, "max_weekly_discounts", "weekly_cocoon_limit") ?: WEEKLY_BOSSES
             val validBoss = maxBoss == WEEKLY_BOSSES && remain != null && remain in 0..WEEKLY_BOSSES
             listOf("시뮬레이션 우주·화폐 전쟁 통합 주간 포인트: " +
                 (score?.toString() ?: "미확인") + "/" + (maxScore?.toString() ?: "미확인"),
-                "역전의 여운 주간 보상 잔여: " +
+                "주간 보스 보상 잔여: " +
                 (if (validBoss) "$remain/$maxBoss" else "미확인/3") +
                 " (실제 전투 횟수가 아닌 할인 보상 횟수)",
                 "이상 중재: 회차와 별 수 조회 API 확인 전 자동 체크 보류")

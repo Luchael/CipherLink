@@ -90,7 +90,7 @@ class BannerSyncTests(unittest.TestCase):
         self.assertEqual(r['created'], ['[원신] 스커크'])
         self.assertEqual(api.operations[0][1]['due'], {'date': self.banner.start.date().isoformat()})
         self.assertNotIn('deadline',api.operations[0][1])
-        self.assertEqual(api.operations[0][1]['labels'],['원신'])
+        self.assertEqual(set(api.operations[0][1]['labels']),{'원신','가챠'})
 
     def test_manual_task_preserved(self):
         api=FakeAPI([{'id':'manual','content':'[원신] 스커크','labels':['원신','중요'],

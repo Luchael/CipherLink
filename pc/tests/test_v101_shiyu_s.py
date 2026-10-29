@@ -13,6 +13,12 @@ class ShiyuSGradeTests(unittest.TestCase):
             'pass_fifth_floor':passed,'brief':{'score':sum(scores)}}}
     def test_user_real_scores_all_s(self):
         p=parse('shiyu',self.record([26390,48516,45724]));self.assertEqual((p.value,p.goal),(4,4))
+    def test_points_are_supplementary_and_keep_per_room_values(self):
+        p=parse('shiyu',self.record([26390,48516,45724]))
+        self.assertIn('26,390점',p.display_detail)
+        self.assertIn('48,516점',p.display_detail)
+        self.assertEqual(p.goal,4)
+
     def test_90k_alone_does_not_count_as_three_s(self):
         p=parse('shiyu',self.record([50000,20000,20000]));self.assertEqual((p.value,p.goal),(2,4))
     def test_fourth_A_does_not_autocomplete(self):

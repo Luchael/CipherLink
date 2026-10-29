@@ -51,8 +51,19 @@ class BannerV081Tests(unittest.TestCase):
         operation,args = api.operations[0]
         self.assertEqual(operation,'item_add')
         self.assertEqual(args['due'],{'date':'2026-10-27'})
+        self.assertEqual(set(args['labels']),{'원신','가챠'})
         self.assertNotIn('deadline_date',args)
         self.assertEqual(args['description'],'출처: https://source.example/news')
+
+    def test_existing_banner_gets_gacha_label_without_losing_user_labels(self):
+        task=self.task();task['labels']=['원신','사용자 라벨']
+        api=FakeApi([task])
+        with patch('gametodo.banner_sync.fetch_banners',return_value=[self.banner]):
+            report=sync_banners(self.settings,self.store,api=api,now=self.start+timedelta(hours=1))
+        changes=[args for op,args in api.operations if op=='item_update']
+        self.assertEqual(len(changes),1)
+        self.assertEqual(set(changes[0]['labels']),{'원신','가챠','사용자 라벨'})
+        self.assertEqual(report['created'],[])
 
     def test_finish_only_after_end(self):
         api=FakeApi([self.task()])

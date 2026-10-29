@@ -108,15 +108,16 @@ def all_claimed_from_reward_list(obj, path, total_path=None):
 
 
 def genshin_status(note):
-    daily = gauge(note, ("daily_task.completed_tasks", "completed_commissions"),
-                  ("daily_task.max_tasks", "max_commissions"))
+    daily = gauge(note, ("daily_task.completed_tasks", "completed_commissions", "finished_task_num"),
+                  ("daily_task.max_tasks", "max_commissions", "total_task_num"))
     flag = field_at(note, "daily_task.claimed_commission_reward")
     if type(flag) is not bool:
         flag = field_at(note, "claimed_commission_reward")
+    if type(flag) is not bool:flag=field_at(note,"is_extra_task_reward_received")
     flag = flag if type(flag) is bool else None
     # 할인 사용 횟수(전투 승리 횟수와 구별). API 필드가 없으면 완료 여부는 미확인.
-    remaining = number(note, "remain_resin_discount_num")
-    limit = number(note, "resin_discount_num_limit")
+    remaining = number(note, "remain_resin_discount_num", "remaining_resin_discounts")
+    limit = number(note, "resin_discount_num_limit", "max_resin_discounts")
     weekly = (Gauge(limit - remaining, limit) if limit is not None and limit >= 3
               and remaining is not None and 0 <= remaining <= limit else Gauge(None, None))
     return Status("genshin", "HoYoLAB", daily, flag,
@@ -136,7 +137,7 @@ def hsr_status(note):
         claim = all_claimed_from_reward_list(note, "daily_training.rewards", "daily_training.total_rewards")
     # Android와 동일: 시뮬레이션 우주·화폐 전쟁 통합 포인트 AND 역전의 여운 주간 할인 3회.
     remain = number(note, "remaining_weekly_discounts", "weekly_cocoon_cnt")
-    discount_limit = number(note, "max_weekly_discounts")
+    discount_limit = number(note, "max_weekly_discounts", "weekly_cocoon_limit")
     if discount_limit is None:
         discount_limit = 3
     weekly = Gauge(None, None)
@@ -154,8 +155,8 @@ def hsr_status(note):
 def zzz_status(note):
     daily = gauge(note, ("vitality.current", "engagement.current", "daily_engagement.current"),
                   ("vitality.max", "engagement.max", "daily_engagement.max"))
-    weekly = gauge(note, ("weekly_task.current", "weekly_task.points"),
-                   ("weekly_task.max", "weekly_task.max_points"))
+    weekly = gauge(note, ("weekly_task.cur_point", "weekly_task.current", "weekly_task.points"),
+                   ("weekly_task.max_point", "weekly_task.max", "weekly_task.max_points"))
     claim = field_at(note, "vitality.all_rewards_claimed")
     if type(claim) is not bool:
         claim = all_claimed_from_reward_list(note, "vitality.rewards", "vitality.total_rewards")
@@ -168,7 +169,10 @@ def zzz_status(note):
     return Status("zzz", "HoYoLAB", daily, claim,
                   {"weekly_task_points": weekly.text()},
                   "일일 활약도가 최대치면 Todoist 완료",
-                  metrics={"weekly_task": weekly, "weekly": combined})
+                  metrics={"weekly_task": weekly, "weekly": combined,
+                           **({"bounty_points":Gauge(bounty,8000)} if bounty is not None else {}),
+                           "bounty_tasks": gauge(note,("hollow_zero.bounty_commission.cur_completed", "hollow_zero.bounty_commission.num", "bounty_commission.num"),
+                                                 ("hollow_zero.bounty_commission.total", "bounty_commission.total"))})
 
 
 def wuthering_status(payload, expected_server_id):
@@ -213,8 +217,42 @@ def endfield_status(payload, role_id, server_id):
     # 서버 식별도 필수: 호출 시 서명된 serverId와 바인딩 정보를 비교.
     daily = gauge(detail, ("dailyMission.dailyActivation",),
                   ("dailyMission.maxDailyActivation",))
-    # 일일 활약도 maxDailyActivation 달성을 Todoist 완료 조건으로 사용.
-    # 실제 보상 수령을 수행하지는 않는다.
+    # Weekly cadence was confirmed by the user; optional boss windows remain display-only.
+    metrics={}
+    if number(detail,"weeklyMission.score") is not None and (number(detail,"weeklyMission.total") or 0)>0:
+        metrics["weekly_mission"]=gauge(detail,("weeklyMission.score",),("weeklyMission.total",))
+    extras,titles,notes=endfield_periodic(detail)
+    metrics.update(extras)
     return Status("endfield", "SKPORT", daily, None,
-                  {"server_id": str(server_id)},
-                  "일일 임무 활약도 최대치면 Todoist 완료")
+                  {"server_id":str(server_id),"metric_titles":titles,"metric_notes":notes},
+                  "일일/주간 임무의 실제 API 목표 점수로 완료",
+                  metrics=metrics)
+
+
+def endfield_periodic(detail, now_seconds=None):
+    """Read optional current Umbral Monument windows; never creates automatic bindings."""
+    from .endgame_records import date_value
+    from datetime import datetime
+    import time
+    now_seconds=time.time() if now_seconds is None else now_seconds
+    rows=field_at(detail,"indieHard.indieHardGroups")
+    if not isinstance(rows,list):return {},{},{}
+    metrics,titles,notes={},{},{}
+    from .cycles import KST
+    for index,row in enumerate(rows):
+        if not isinstance(row,dict) or row.get('isInActivity') is False:continue
+        start=date_value(row.get('activityStartTs'));end=date_value(row.get('activityEndTs'))
+        if start is None or end is None or not start<=now_seconds<end:continue
+        dungeons=row.get('dungeonGroups')
+        if not isinstance(dungeons,list) or not dungeons:continue
+        period=' ~ '.join(datetime.fromtimestamp(t,KST).strftime('%Y-%m-%d %H:%M') for t in (start,end))
+        span=end-start
+        length=f'{span//86400}일' if span%86400==0 else f'{span//86400}일 {(span%86400)//3600}시간'
+        for field,label in [('normalDungeon','일반'),('hardDungeon','고난도')]:
+            passes=[field_at(d,field+'.isPass') for d in dungeons]
+            if not all(type(value) is bool for value in passes):continue
+            metric=f'umbral_{index}_{field}'
+            metrics[metric]=Gauge(sum(passes),len(passes))
+            titles[metric]='그림자 이정표 · '+label
+            notes[metric]=f'이번 운영 기간 {period} KST ({length}) · 반복 주기 미확인 · 읽기 전용'
+    return metrics,titles,notes

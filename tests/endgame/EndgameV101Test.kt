@@ -14,6 +14,7 @@ fun main() {
           JSONArray(scores.map { j101("score" to it) }))))
  val yes=EndgameRecords.parse(role,"shiyu",make(listOf(26390,48516,45724)))!!
  check(yes.current==4 && yes.maximum==4)
+ check(yes.displayDetail.contains("26,390점") && yes.displayDetail.contains("48,516점"))
  check(EndgameRecords.currentPeriod(yes,System.currentTimeMillis()))
  check(EndgameRecords.parse(role,"shiyu",make(listOf(50000,20000,20000)))!!.current==2)
  check(EndgameRecords.parse(role,"shiyu",make(listOf(26390,48516,45724),"A"))!!.current==3)

@@ -128,10 +128,11 @@ class MobileBannerSync(private val context: android.content.Context) {
                             BannerLedger.source(it.description) == banner.sourceUrl }
                     if (item != null) {
                         // 이전 자동 등록 작업만 설명과 날짜를 수정한다. 수동 작업은 건드리지 않는다.
-                        if (BannerLedger.legacyKey(item.description) == banner.key &&
+                        val labelsMissing = !item.labels.containsAll(BannerLabels.merge(banner.label))
+                        if (labelsMissing || (BannerLedger.legacyKey(item.description) == banner.key &&
                             (item.description != banner.description || item.dueDate != banner.startDate ||
-                             item.title != banner.title)) {
-                            api.updateBanner(item.id,banner)
+                             item.title != banner.title))) {
+                            api.updateBanner(item.id,banner,item.labels)
                         }
                         ledger.remember(banner,item.id)
                         continue

@@ -6,7 +6,7 @@ fun main() {
     val label="새 게임"
     val key=LabelGames.key(label)
     check(key==LabelGames.key(label) && key!=LabelGames.key("다른 게임"))
-    check(LabelGames.candidates(listOf(label,label,"원신"," "),setOf("원신"))==listOf(label))
+    check(LabelGames.candidates(listOf(label,label,"원신"," ","가챠"),setOf("원신"))==listOf(label))
     val games=listOf(GameRules.Game(key,label,"",label,null,emptyList()),
         GameRules.Game("genshin","원신","원신","원신",5,emptyList()))
     check(!GameRules.matchingTask(games[0],"[] 일일",emptyList()))

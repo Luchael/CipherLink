@@ -20,7 +20,7 @@ object ProgressMemo {
         }
         val covered = when(game) {
             "hsr" -> setOf("시뮬레이션 우주·화폐 전쟁 통합 주간 포인트", "역전의 여운 주간 할인 잔여")
-            "zzz" -> setOf("메모 일일 활약도", "주간 일정")
+            "zzz" -> setOf("메모 일일 활약도", "주간 일정", "제로 공동 현상금 임무")
             else -> emptySet()
         }
         return (resources + RealTimeMemo.detailLines(game,note).filterNot { line ->

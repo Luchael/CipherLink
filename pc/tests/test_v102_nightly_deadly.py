@@ -32,7 +32,9 @@ class V102Deadly(unittest.TestCase):
         payload={'has_data':True,'total_star':0,'total_score':0, 'list':[],
                  'hard_list':[{'score':33930,'star':3}],
                  'start_time':self.from_date,'end_time':self.end_date}
-        self.assertEqual(parse('deadly',payload).value,0)
+        result=parse('deadly',payload)
+        self.assertEqual(result.value,0)
+        self.assertIn('절망 1번 33,930점',result.display_detail)
         self.assertEqual(deadly_detail(payload)['adversity_bosses'][0]['stars'],3)
 
     def test_bad_or_absent_records_no_fabricated_completion(self):

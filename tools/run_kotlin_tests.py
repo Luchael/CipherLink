@@ -19,7 +19,9 @@ plans=[('BubbleGeometryTest',['BubbleGeometry.kt'],[]),('OverlayEventPolicyTest'
 for t in sorted((root/'tests/endgame').glob('Endgame*Test.kt')):plans.append((t.stem,['EndgameRecords.kt','EndgameGoals.kt'],['tests/endgame/Models.kt','tests/endgame/Stubs.kt']))
 plans += [('OverlayTaskTreeTest', policy + ['TodoTask.kt','OverlayTaskTree.kt'], []),
           ('TaskSupportTest',['TaskSupport.kt','SafeFailure.kt'], []),
-          ('BannerSourcePolicyTest',['StellaBanners.kt','BannerSource.kt','GameRules.kt','LabelGames.kt','BannerLedger.kt','BannerExpiry.kt','TodoTask.kt'],['tests/banner/TodoistStub.kt'])]
+          ('BannerSourcePolicyTest',['StellaBanners.kt','BannerLabels.kt','BannerSource.kt','GameRules.kt','LabelGames.kt','BannerLedger.kt','BannerExpiry.kt','TodoTask.kt'],['tests/banner/TodoistStub.kt'])]
+plans += [('EndfieldNotesTest',['EndfieldNotes.kt','SharedPeriods.kt'],['tests/endgame/Stubs.kt'])]
+plans += [('BannerLabelsTest',['BannerLabels.kt'],[])]
 plans += [('UiJobRunnerTest',['UiJobRunner.kt'],[]),
           ('LabelGamesTest',policy+['LabelGames.kt','GameRules.kt','TodoTask.kt','OverlayTaskTree.kt'],[]),
           ('ProgressMemoTest',['ProgressMemo.kt','RealTimeMemo.kt'],['tests/support/JSONObject.kt']),
