@@ -28,6 +28,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('version')
     parser.add_argument('--output',type=Path)
+    parser.add_argument('--resume',action='store_true',help='Resume an existing draft after resolving upload access')
     parser.add_argument('--finalize',action='store_true',help='Publish a completed draft only when repository is private')
     args=parser.parse_args()
     version,code=project_version()
@@ -64,8 +65,17 @@ def main():
         if args.output:
             args.output.mkdir(parents=True,exist_ok=True)
             shutil.copyfile(apk,args.output/f'CipherLink-{version}.apk')
-        command(['gh','release','create',tag,'--repo',repo,'--target',head,'--draft',
-                 '--title',f'사이퍼링크 {version}','--notes-file',str(notes)],'Draft release creation')
+        if args.resume:
+            metadata=json.loads(command(['gh','release','view',tag,'--repo',repo,'--json','isDraft,assets'],'Existing draft check'))
+            if not metadata['isDraft']: raise SystemExit('Cannot overwrite a published release')
+            if config['android_asset'] in {entry['name'] for entry in metadata['assets']}:
+                raise SystemExit('APK is already attached; run the release workflow to finish')
+            target=command(['gh','api',f'repos/{repo}/git/ref/tags/{tag}','--jq','.object.sha'],'Tag revision')
+            if command(['git','diff',target,'HEAD','--','android','pc'],'Tagged application source check'):
+                raise SystemExit('Application source changed since the tag; create a new version')
+        else:
+            command(['gh','release','create',tag,'--repo',repo,'--target',head,'--draft',
+                     '--title',f'사이퍼링크 {version}','--notes-file',str(notes)],'Draft release creation')
         command(['gh','release','upload',tag,str(asset),'--repo',repo],'APK upload')
     command(['gh','workflow','run','release.yml','--repo',repo,'--ref','main',
              '-f',f'version={version}'],'Windows build and release dispatch')

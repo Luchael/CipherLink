@@ -34,17 +34,31 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Verify tag and APK draft
+      - name: Verify tag and inspect draft
+        id: draft
         shell: pwsh
         run: |
           python tools/release_metadata.py $env:RELEASE_VERSION
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $draft = gh release view "v$env:RELEASE_VERSION" --json isDraft --jq .isDraft
-          if ($LASTEXITCODE -ne 0 -or $draft -ne 'true') { throw 'A draft release with a signed APK is required' }
+          if ($LASTEXITCODE -ne 0 -or $draft -ne 'true') { throw 'A draft release is required' }
           New-Item -ItemType Directory -Path publish -Force | Out-Null
-          gh release download "v$env:RELEASE_VERSION" --pattern CipherLink-Android.apk --dir publish
+          $names = @(gh release view "v$env:RELEASE_VERSION" --json assets --jq '.assets[].name')
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $hasExe = $names -contains 'CipherLink-Windows.exe'
+          $hasApk = $names -contains 'CipherLink-Android.apk'
+          "has_exe=$($hasExe.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          "has_apk=$($hasApk.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          if ($hasExe) {
+            gh release download "v$env:RELEASE_VERSION" --pattern CipherLink-Windows.exe --dir publish
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          if ($hasApk) {
+            gh release download "v$env:RELEASE_VERSION" --pattern CipherLink-Android.apk --dir publish
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Test and package Windows
+        if: steps.draft.outputs.has_exe != 'true'
         working-directory: pc
         shell: pwsh
         run: |
@@ -58,16 +72,28 @@ jobs:
             }
             exit $buildExit
           }
-      - name: Assemble checksums and update metadata
+      - name: Attach Windows binary to draft
+        if: steps.draft.outputs.has_exe != 'true'
         shell: pwsh
         run: |
           Copy-Item pc/dist/CipherLink.exe publish/CipherLink-Windows.exe
+          gh release upload "v$env:RELEASE_VERSION" publish/CipherLink-Windows.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Keep incomplete release private
+        if: steps.draft.outputs.has_apk != 'true'
+        shell: pwsh
+        run: Write-Output '::notice::EXE ready in draft. Signed APK upload is still required; release was not published.'
+      - name: Assemble checksums and update metadata
+        if: steps.draft.outputs.has_apk == 'true'
+        shell: pwsh
+        run: |
           python tools/release_metadata.py $env:RELEASE_VERSION --directory publish
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Publish only after both files are ready
+        if: steps.draft.outputs.has_apk == 'true'
         shell: pwsh
         run: |
-          gh release upload "v$env:RELEASE_VERSION" publish/CipherLink-Windows.exe publish/SHA256SUMS.txt publish/update.json
+          gh release upload "v$env:RELEASE_VERSION" publish/SHA256SUMS.txt publish/update.json --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $private = gh api "repos/$env:GITHUB_REPOSITORY" --jq .private
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
