@@ -10,7 +10,8 @@
 - [**Windows 설치·업데이트 다운로드**](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Windows-Setup.exe)
 - [Windows 무설치 실행 파일](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Windows.exe)
 
-Android APK는 아직 GitHub에 업로드되지 않았습니다.
+- [Android APK 다운로드 — 업로드 예정](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Android.apk)
+  파일을 직접 올리기 전까지는 다운로드되지 않습니다. 파일 이름은 `CipherLink-Android.apk`를 사용하세요.
 
 [버전 상세 및 파일 목록](https://github.com/Luchael/CipherLink/releases/tag/untagged-f06c6b073a26012ef117)
 
