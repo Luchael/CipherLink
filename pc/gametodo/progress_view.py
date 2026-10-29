@@ -13,6 +13,7 @@ class ProgressRow:
     percent: int
     state: str
     detail: str = ""
+    show_bar: bool = True
 
 def present(metric, current, maximum):
     known = type(current) is int and current >= 0 and type(maximum) is int and maximum > 0
@@ -29,6 +30,7 @@ def status_rows(status):
     if status.game=='zzz':
         for mode in ('shiyu','deadly'):metrics.setdefault(mode,Gauge(None,None))
     for key,gauge in metrics.items():
+        if key in ('umbral_complete','crisis_complete','war_complete'):continue
         if key=='weekly' and status.game in ('hsr','zzz'):continue
         if key=='bounty_tasks' and gauge.current is None:continue
         row=present(key,gauge.current,gauge.maximum)
@@ -46,5 +48,6 @@ def status_rows(status):
         if key=='weekly_mission':detail='매주 월요일 · [엔필] 주간퀘스트 연동'
         title=(status.details.get('metric_titles') or {}).get(key,row.title)
         detail=(status.details.get('metric_notes') or {}).get(key,detail)
+        if key in ('crisis_status','war_status'):row=replace(row,value='',state='',show_bar=False)
         rows.append(replace(row,title=title,detail=detail))
     return rows

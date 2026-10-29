@@ -9,7 +9,7 @@ object ProgressPresentation {
         "rogue_weekly" to "시뮬레이션 우주 · 화폐 전쟁", "weekly_mission" to "주간 임무", "weekly_task" to "리두 주간 일정", "bounty_tasks" to "현상금 의뢰 횟수", "bounty_points" to "현상금 의뢰 포인트")
     fun title(metric: String) = titles[metric] ?: "추가 진행도"
     fun title(game: String, metric: String) = if(game=="genshin" && metric=="weekly") "주간 보스" else title(metric)
-    fun visible(game: String, metric: String) = !(game in setOf("hsr","zzz") && metric=="weekly")
+    fun visible(game: String, metric: String) = metric !in setOf("umbral_complete","crisis_complete","war_complete") && !(game in setOf("hsr","zzz") && metric=="weekly")
     fun known(current: Int?, maximum: Int?) = current != null && current >= 0 && maximum != null && maximum > 0
     fun value(current: Int?, maximum: Int?) = if (known(current,maximum)) "$current / $maximum" else "정보 없음"
     fun value(metric: String, current: Int?, maximum: Int?) = value(current,maximum) +

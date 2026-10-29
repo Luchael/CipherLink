@@ -346,6 +346,41 @@
       "status": "auto",
       "aliases": [],
       "note": "사용자 확인: 매주 월요일. weeklyMission.score/total 목표 달성 시, 기존 KST 초기화/유예/예정일/중복 방지 적용"
+    },
+    {
+      "game": "endfield",
+      "title": "[엔필] 그림자 이정표",
+      "cadence": "interval",
+      "metric": "umbral_complete",
+      "status": "auto",
+      "aliases": [],
+      "interval_days": 49,
+      "completion": "series_goal",
+      "note": "사용자 고정49일, 최신 시리즈의 일반·고난도 모두 클리어. 부가 이벤트 종료를 본체 만료로 간주하지 않음"
+    },
+    {
+      "game": "endfield",
+      "title": "[엔필] 위기 협약",
+      "cadence": "interval",
+      "metric": "crisis_complete",
+      "status": "auto",
+      "aliases": [],
+      "interval_days": 147,
+      "completion": "goal_or_expiry",
+      "project_name": "ToDoGames",
+      "section_name": "N일",
+      "note": "사용자 고정 21주(147일); API 세 임무 카운터와 도금 훈장 확인 시 또는 확인된 종료 시각에 완료. 글로벌 API 실계정 검증 필요"
+    },
+    {
+      "game": "endfield",
+      "title": "[엔필] 전쟁의 메아리",
+      "cadence": "interval",
+      "metric": "war_complete",
+      "status": "auto",
+      "aliases": [],
+      "interval_days": 7,
+      "completion": "goal",
+      "note": "사용자 설정 매주; API 현재 주차의 세 난이도와 추가 목표 모두 완료. 시즌 전체 합계로 주간 체크하지 않음"
     }
   ]
 }

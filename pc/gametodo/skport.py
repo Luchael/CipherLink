@@ -110,3 +110,16 @@ class Skport:
         return self._signed_get("/api/v1/game/endfield/card/detail",
                                 {"roleId": role_id, "serverId": server_id},
                                 game_role=f"3_{role_id}_{server_id}", operation='skport_detail')
+
+    def indie_hard(self, role_id, server_id):
+        return self._signed_get('/api/v1/game/endfield/card/indie-hard',
+            {'roleId':role_id,'serverId':server_id},game_role=f'3_{role_id}_{server_id}',operation='skport_indie_hard')
+
+    def crisis_contract(self,role_id,server_id):
+        # Global read-only candidate; live Asia support is not established by the CN model.
+        return self._signed_get('/api/v1/game/endfield/card/crisis-contract',
+            {'roleId':role_id,'serverId':server_id},game_role=f'3_{role_id}_{server_id}',operation='skport_crisis')
+
+    def war_echoes(self,role_id,server_id):
+        return self._signed_get('/api/v1/game/endfield/card/war-echoes',
+            {'roleId':role_id,'serverId':server_id},game_role=f'3_{role_id}_{server_id}',operation='skport_war_echoes')

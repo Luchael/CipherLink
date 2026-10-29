@@ -375,7 +375,7 @@ class MainActivity : Activity() {
             if(token!=null) for(role in loadRoles(vault,"endfield_roles")) {
                 try {
                     jobs.update("details","엔드필드 · 진행도를 불러오고 있어요…")
-                    groups+=DetailGroup(role.game,role.nickname,EndfieldProvider.progress(token,role),emptyList())
+                    groups+=DetailGroup(role.game,role.nickname,EndfieldProvider.progress(token,role,applicationContext),emptyList())
                 }
                 catch(e:Exception) {groups+=DetailGroup(role.game,role.nickname,emptyList(),emptyList(),SafeFailure.describe(e))}
             }
@@ -399,16 +399,19 @@ class MainActivity : Activity() {
             for(g in group.gauges.distinctBy {it.metric}.filter {ProgressPresentation.visible(group.game,it.metric)}) {
                 val row=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL}
                 row.addView(label(g.displayTitle.ifBlank {ProgressPresentation.title(group.game,g.metric)},15f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
-                row.addView(label(ProgressPresentation.value(g.metric,g.current,g.maximum),17f,UiKit.BLUE,true))
+                if(!g.displayOnly) row.addView(label(ProgressPresentation.value(g.metric,g.current,g.maximum),17f,UiKit.BLUE,true))
                 card.addView(row,UiKit.margin(this,14,6))
+                if(!g.displayOnly) {
                 card.addView(ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply {
                     max=1000;progress=ProgressPresentation.fraction(g.current,g.maximum)
                     progressTintList=ColorStateList.valueOf(UiKit.GREEN);progressBackgroundTintList=ColorStateList.valueOf(UiKit.PANEL)
                 },LinearLayout.LayoutParams(-1,dp(7)))
-                val period=if(g.metric !in setOf("daily","weekly","weekly_task","rogue_weekly","weekly_boss_used","bounty_tasks","bounty_points","weekly_mission")) {
-                    if(EndgameRecords.currentPeriod(g,System.currentTimeMillis())) " · 현재 회차" else " · 회차 확인 필요"
+                val period=if(!g.metric.startsWith("umbral_") && g.metric !in setOf("daily","weekly","weekly_task","rogue_weekly","weekly_boss_used","bounty_tasks","bounty_points","weekly_mission")) {
+                    if(g.periodEndMs!=null && System.currentTimeMillis()>=g.periodEndMs) " · 기간 종료"
+                    else if(EndgameRecords.currentPeriod(g,System.currentTimeMillis())) " · 현재 회차" else " · 회차 확인 필요"
                 } else ""
                 card.addView(label(ProgressPresentation.state(g.current,g.maximum)+period,12f,UiKit.MUTED),UiKit.margin(this,5,4))
+                }
                 if(g.displayDetail.isNotBlank()) card.addView(label(g.displayDetail,12f,UiKit.MUTED),UiKit.margin(this,4,4))
                 if(g.metric=="weekly_mission") card.addView(label("매주 월요일 · [엔필] 주간퀘스트 연동",12f,UiKit.MUTED),UiKit.margin(this,4,4))
                 if(g.metric=="weekly_task") card.addView(label("주간 보상 기준 800점 · 전체 상한 ${g.maximum}점",12f,UiKit.MUTED),UiKit.margin(this,4,4))

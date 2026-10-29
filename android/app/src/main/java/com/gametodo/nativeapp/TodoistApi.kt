@@ -86,6 +86,27 @@ class TodoistApi(private val context: Context) {
         throw IllegalStateException("Todoist 작업이 너무 많아 전체 목록을 확인하지 못했습니다")
     }
 
+    /** Exact existing project/section only; never creates or relocates a task. */
+    fun namedLocation(projectName:String,sectionName:String):Pair<String,String>? {
+        val token=auth.accessToken()
+        fun rows(path:String):List<JSONObject> {
+            val result=mutableListOf<JSONObject>();var cursor:String?=null
+            repeat(50) {
+                val url="https://api.todoist.com/api/v1/$path?limit=200"+(cursor?.let {"&cursor="+URLEncoder.encode(it,"UTF-8")} ?: "")
+                val page=JSONObject(HttpApi.request(url,token=token));val items=page.optJSONArray("results") ?: JSONArray()
+                for(i in 0 until items.length()) result+=items.getJSONObject(i)
+                cursor=page.optString("next_cursor").takeIf {it.isNotBlank() && it!="null"}
+                if(cursor==null) return result
+            }
+            error("Todoist 위치 조회 페이지 제한")
+        }
+        val projects=rows("projects").filter {it.optString("name").equals(projectName,true)}
+        if(projects.size!=1) return null
+        val pid=projects.single().getString("id")
+        val sections=rows("sections").filter {it.optString("project_id")==pid && it.optString("name")==sectionName}
+        return sections.singleOrNull()?.let {pid to it.getString("id")}
+    }
+
     /** 체크 버튼을 누르기 직전에 서버의 최신 작업 상태를 한 건만 다시 확인한다. */
     fun taskById(id: String): TodoTask? {
         require(id.matches(Regex("[A-Za-z0-9]+")))

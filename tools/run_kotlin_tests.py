@@ -20,6 +20,7 @@ for t in sorted((root/'tests/endgame').glob('Endgame*Test.kt')):plans.append((t.
 plans += [('OverlayTaskTreeTest', policy + ['TodoTask.kt','OverlayTaskTree.kt'], []),
           ('TaskSupportTest',['TaskSupport.kt','SafeFailure.kt'], []),
           ('BannerSourcePolicyTest',['StellaBanners.kt','BannerLabels.kt','BannerSource.kt','GameRules.kt','LabelGames.kt','BannerLedger.kt','BannerExpiry.kt','TodoTask.kt'],['tests/banner/TodoistStub.kt'])]
+plans += [('FixedIntervalsTest',policy+['FixedIntervals.kt'],[]),('EndfieldLongTermTest',['EndfieldLongTerm.kt'],['tests/endgame/Models.kt','tests/endgame/Stubs.kt'])]
 plans += [('EndfieldNotesTest',['EndfieldNotes.kt','SharedPeriods.kt'],['tests/endgame/Stubs.kt'])]
 plans += [('BannerLabelsTest',['BannerLabels.kt'],[])]
 plans += [('UiJobRunnerTest',['UiJobRunner.kt'],[]),

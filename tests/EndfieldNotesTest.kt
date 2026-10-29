@@ -29,8 +29,8 @@ fun main() {
     val bossRows=EndfieldNotes.gauges(role,boss(),now)
     check(bossRows.size==2 && bossRows.first().current==1 && bossRows.last().current==0)
     check(bossRows.first().displayTitle=="그림자 이정표 · 일반")
-    check(bossRows.first().displayDetail.contains("반복 주기 미확인"))
-    check(EndfieldNotes.gauges(role,boss(end=1800000000),now).isEmpty())
+    check(bossRows.first().displayDetail.contains("본체 클리어 기록"))
+    check(EndfieldNotes.gauges(role,boss(end=1800000000),now).size==2)
     check(EndfieldNotes.gauges(role,boss(flag="true"),now).size==1) // string is not proven clear
     fun kst(value:String)=java.time.ZonedDateTime.parse(value+"+09:00[Asia/Seoul]").toInstant().toEpochMilli()
     check(GamePeriods.currentCycle("endfield","weekly",kst("2026-11-02T05:19:00"))==null)

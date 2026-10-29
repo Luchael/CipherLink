@@ -19,6 +19,10 @@ class Binding:
     title: str
     kind: str     # daily / weekly / rotation
     metric: str   # daily 또는 Status.metrics에 있는 게이지의 키
+    interval_days: int | None = None
+    completion: str = "goal"
+    project_name: str = ""
+    section_name: str = ""
 
 
 def load_todoist_catalog() -> dict:
@@ -41,7 +45,7 @@ def _default_bindings() -> tuple[Binding, ...]:
         # 조건부 명일방주 인증은 account_watch의 allow_arknights 및 23:59 정책이 별도 통제한다.
         # 명조 글로벌은 read_wuthering이 사용 불가를 명시적으로 거부한다.
         for title in (item["title"], *(item.get("aliases") or [])):
-            result.append(Binding(item["game"], title, item["cadence"], item["metric"]))
+            result.append(Binding(item["game"], title, item["cadence"], item["metric"], item.get("interval_days"), item.get("completion","goal"), item.get("project_name",""), item.get("section_name","")))
     return tuple(dict.fromkeys(result))
 
 
@@ -60,7 +64,7 @@ def configured_bindings(settings: dict) -> tuple[Binding, ...]:
     bindings = []
     for item in AUTO_BINDINGS:
         title = names.get(item.game, item.title) if item.kind == "daily" else item.title
-        bindings.append(Binding(item.game, title, item.kind, item.metric))
+        bindings.append(Binding(item.game, title, item.kind, item.metric, item.interval_days, item.completion, item.project_name, item.section_name))
     for raw in cfg.get("custom_bindings") or []:
         if not isinstance(raw, dict):
             continue

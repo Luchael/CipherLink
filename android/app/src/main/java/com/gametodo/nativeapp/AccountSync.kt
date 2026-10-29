@@ -29,7 +29,7 @@ class AccountSync(private val context: Context) {
         vault.loadNamed("endfield_token")?.let { token ->
             for (role in loadRoles(vault,"endfield_roles")) {
                 if (!GameLookupSettings.enabled(context, role.game)) continue
-                try { gauges.addAll(EndfieldProvider.progress(token, role)) }
+                try { gauges.addAll(EndfieldProvider.progress(token, role,context)) }
                 catch (_: Exception) { /* 같은 원리 */ }
             }
         }
@@ -66,7 +66,7 @@ class AccountSync(private val context: Context) {
         }.ifEmpty { listOf("API 점수는 있지만 등록된 자동 완료 규칙이 없습니다.") }
     }
 
-    private data class Rule(val metric: String, val kind: String, val titles: List<String>)
+    private data class Rule(val metric: String, val kind: String, val titles: List<String>,val days:Int?=null,val completion:String="goal",val project:String="",val section:String="")
 
     /** PC/Android 동일한 Todoist 제목 연결표. 수동/미검증 콘텐츠는 자동 완료 규칙에서 제외. */
     private val sharedRules: Map<String, List<Rule>> by lazy {
@@ -77,7 +77,7 @@ class AccountSync(private val context: Context) {
             val row = all.getJSONObject(i)
             if (row.optString("status") != "auto") continue
             val kind = row.optString("cadence")
-            if (kind !in setOf("daily", "weekly", "endgame")) continue
+            if (kind !in setOf("daily", "weekly", "endgame", "interval")) continue
             val game = row.optString("game")
             val metric = row.optString("metric")
             val title = row.optString("title")
@@ -89,7 +89,7 @@ class AccountSync(private val context: Context) {
                     if (alias.isNotBlank() && alias !in titles) titles.add(alias)
                 }
             }
-            result.getOrPut(game) { mutableListOf() }.add(Rule(metric, kind, titles))
+            result.getOrPut(game) { mutableListOf() }.add(Rule(metric, kind, titles,row.optInt("interval_days").takeIf {it>0},row.optString("completion","goal"),row.optString("project_name"),row.optString("section_name")))
         }
         result
     }
@@ -111,6 +111,7 @@ class AccountSync(private val context: Context) {
                 val id = when (binding.kind) {
                     "daily", "weekly" -> GamePeriods.currentCycle(g.game,binding.kind,nowMillis)
                     "endgame" -> g.periodKey?.takeIf { EndgameRecords.currentPeriod(g,nowMillis) }
+                    "interval" -> g.periodKey?.takeIf {GamePeriods.currentCycle(g.game,"daily",nowMillis)!=null}
                     else -> null
                 } ?: continue
                 ready.add(Candidate(g,binding,"${g.game}:${g.account}:${g.metric}:$id"))
@@ -122,19 +123,26 @@ class AccountSync(private val context: Context) {
         val gameRules = GameRules.all(context).associateBy { it.key }
         for ((g, rule, key) in ready) {
             val gameRule = gameRules[g.game] ?: continue
+            val location=if(rule.project.isNotBlank() && rule.section.isNotBlank()) todoist.namedLocation(rule.project,rule.section) else null
+            if(rule.project.isNotBlank() && location==null) continue
             val matching = tasks.filter { task ->
-                task.title in rule.titles && GameRules.matchingTask(gameRule,task.title,task.labels)
+                task.title in rule.titles && GameRules.matchingTask(gameRule,task.title,task.labels) &&
+                    (location==null || (task.projectId==location.first && task.sectionId==location.second))
             }
             // 동일한 이름의 작업이 여러 개면 임의로 선택하지 않는다.
             if (matching.size != 1) continue
             val task = matching.first()
             // 주간/월간/N일 일정도 Todoist의 *현재 회차*에 속할 때만 자동 완료한다.
             // 반복 시작일이 지나 오래된 회차를 지금 완료하면 다음 회차가 건너뛰어질 수 있다.
-            if (!RecurrenceWindow.isCurrentOccurrence(task.dueDate, task.dueString,
+            val fixed=if(rule.kind=="interval") FixedIntervals.occurrence(task.dueDate,task.isRecurring,rule.days,
+                g.periodStartMs,g.periodEndMs,rule.completion,nowMillis,task.dueString) else null
+            if(rule.kind=="interval" && fixed==null) continue
+            if(rule.kind!="interval" && !RecurrenceWindow.isCurrentOccurrence(task.dueDate, task.dueString,
                     task.isRecurring, RecurrenceWindow.Kind.OTHER, nowMillis)) continue
             val doneId = "closed:$key:${task.id}"
             if (prefs.getBoolean(doneId,false)) continue
             val occurrence = when(rule.kind) {
+                "interval" -> fixed ?: continue
                 "endgame" -> "endgame:" + (g.periodKey ?: continue)
                 "weekly" -> key.substringAfter(":${g.metric}:")
                 else -> key.substringAfterLast(':')

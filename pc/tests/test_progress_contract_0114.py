@@ -69,8 +69,8 @@ class PublicModelContractTests(unittest.TestCase):
         metrics,titles,notes=endfield_periodic(data(),1800000000)
         self.assertEqual([g.current for g in metrics.values()],[1,0])
         self.assertIn('그림자 이정표 · 일반',titles.values())
-        self.assertTrue(all('반복 주기 미확인' in n for n in notes.values()))
-        self.assertEqual(endfield_periodic(data(end=1800000000),1800000000),({},{},{}))
+        self.assertTrue(all('본체 클리어 기록' in n for n in notes.values()))
+        self.assertEqual(len(endfield_periodic(data(end=1800000000),1800000000)[0]),2)
         self.assertEqual(len(endfield_periodic(data(flag='true'),1800000000)[0]),1)
 
     def test_genshin_weekly_is_named_boss(self):

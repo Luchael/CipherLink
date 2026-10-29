@@ -6,8 +6,8 @@ android {
         applicationId = "com.gametodo.nativeapp"
         minSdk = 30
         targetSdk = 35
-        versionCode = 33
-        versionName = "0.11.5"
+        versionCode = 34
+        versionName = "0.11.6"
         // Separate diagnostic install preserves the existing app and its Keystore.
         if (providers.gradleProperty("cipherlinkPreview").orNull == "true") {
             applicationIdSuffix = ".preview"

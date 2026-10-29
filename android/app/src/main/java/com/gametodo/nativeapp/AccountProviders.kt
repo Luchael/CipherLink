@@ -25,7 +25,8 @@ data class AccountGauge(
     val periodStartMs: Long? = null,
     val periodEndMs: Long? = null,
     val displayDetail: String = "",
-    val displayTitle: String = ""
+    val displayTitle: String = "",
+    val displayOnly: Boolean = false
 ) {
     val filled: Boolean get() = maximum > 0 && current >= maximum && current >= 0
 }
@@ -374,7 +375,10 @@ object EndfieldProvider {
             "timestamp" to timestamp, "dId" to "", "vName" to "1.0.0", "Origin" to "https://game.skport.com",
             "Referer" to "https://game.skport.com/", "sk-language" to "ko-kr")
         if (role != null) headers["sk-game-role"] = role
-        return GameNet.json("https://zonai.skport.com$path" + if (query.isBlank()) "" else "?$query", headers = headers)
+        val reply=GameNet.json("https://zonai.skport.com$path" + if (query.isBlank()) "" else "?$query", headers = headers)
+        if((reply.opt("code")!=null || reply.opt("status")!=null || path.endsWith("crisis-contract") || path.endsWith("war-echoes") || path.endsWith("indie-hard")) && !EndfieldLongTerm.verifiedResponse(reply))
+            throw IllegalStateException("SKPORT 응답 상태 확인 실패")
+        return reply
     }
     fun roles(token: String): List<GameRole> {
         val s = session(token)
@@ -406,13 +410,53 @@ object EndfieldProvider {
         }
         return found.distinctBy { it.uid + it.server }
     }
-    fun progress(token: String, role: GameRole): List<AccountGauge> {
+    fun progress(token: String, role: GameRole,appContext: android.content.Context?=null,includeLongTerm:Boolean=true): List<AccountGauge> {
         val s = session(token)
         val query = "roleId=${GameNet.encode(role.uid)}&serverId=${GameNet.encode(role.server)}"
         val detail = signed("/api/v1/game/endfield/card/detail", s, query,
             "3_${role.uid}_${role.server}").optJSONObject("data")
                 ?: throw IllegalStateException("SKPORT 캐릭터 상세 data 없음")
-        return EndfieldNotes.gauges(role,detail)
+        if(!includeLongTerm) return EndfieldNotes.gauges(role,detail).filter {it.metric in setOf("daily","weekly_mission")}
+        val preferences=appContext?.getSharedPreferences("endfield_period_cache",android.content.Context.MODE_PRIVATE)
+        val cacheKey=MessageDigest.getInstance("SHA-256").digest((role.uid+":"+role.server).toByteArray()).joinToString("") {"%02x".format(it.toInt() and 255)}
+        val now=System.currentTimeMillis()
+        val core=detail.optJSONObject("detail") ?: detail
+        if(core.optJSONObject("indieHard")==null && now >= (preferences?.getLong("indie-retry:$cacheKey",0) ?: 0)) {
+            try {
+                val extra=signed("/api/v1/game/endfield/card/indie-hard",s,query,"3_${role.uid}_${role.server}")
+                    .optJSONObject("data")?.optJSONObject("indieHard")
+                if(extra!=null) core.put("indieHard",extra)
+                else preferences?.edit()?.putLong("indie-retry:$cacheKey",now+3_600_000L)?.apply()
+            } catch(_:Exception) {preferences?.edit()?.putLong("indie-retry:$cacheKey",now+3_600_000L)?.apply()}
+        }
+        val result=EndfieldNotes.gauges(role,detail,now).toMutableList()
+        EndfieldLongTerm.umbral(role,detail,now)?.let {result+=it}
+        var crisis=preferences?.getString(cacheKey,null)?.let {runCatching {JSONObject(it)}.getOrNull()}
+        if(now >= (preferences?.getLong("retry:$cacheKey",0) ?: 0)) {
+            try {
+                val response=signed("/api/v1/game/endfield/card/crisis-contract",s,query,"3_${role.uid}_${role.server}")
+                val data=response.optJSONObject("data")
+                val status=data?.optJSONObject("crisisContract")?.optJSONObject("status")
+                if(status!=null && listOf("startAtTs","endAtTs","id").all {status.optString(it).isNotBlank()}) {
+                    crisis=data
+                    val minimal=JSONObject().put("crisisContract",JSONObject().put("status",JSONObject()
+                        .put("id",status.optString("id")).put("startAtTs",status.optString("startAtTs")).put("endAtTs",status.optString("endAtTs"))
+                        .also {if(status.has("gameplayEndAtTs")) it.put("gameplayEndAtTs",status.optString("gameplayEndAtTs"))}))
+                    preferences?.edit()?.putString(cacheKey,minimal.toString())?.remove("retry:$cacheKey")?.apply()
+                } else preferences?.edit()?.putLong("retry:$cacheKey",now+3_600_000L)?.apply()
+            } catch(_:Exception) {preferences?.edit()?.putLong("retry:$cacheKey",now+3_600_000L)?.apply()}
+        }
+        result+=EndfieldLongTerm.crisis(role,crisis,now)
+        var war:JSONObject?=null
+        if(now >= (preferences?.getLong("war-retry:$cacheKey",0) ?: 0)) {
+            try {
+                war=signed("/api/v1/game/endfield/card/war-echoes",s,query,"3_${role.uid}_${role.server}")
+                if(war?.optJSONObject("data")?.optJSONObject("warEchoes")==null)
+                    preferences?.edit()?.putLong("war-retry:$cacheKey",now+3_600_000L)?.apply()
+            } catch(_:Exception) {preferences?.edit()?.putLong("war-retry:$cacheKey",now+3_600_000L)?.apply()}
+        }
+        result+=EndfieldLongTerm.war(role,war,now)
+        return result
     }
 }
 

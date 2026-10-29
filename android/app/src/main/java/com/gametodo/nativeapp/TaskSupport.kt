@@ -22,7 +22,7 @@ object TaskSupport {
         entry.cadence == "daily" -> "일일"
         entry.cadence == "weekly" -> "주간"
         entry.cadence == "monthly" || entry.metric in setOf("theater", "spiral") -> "월간"
-        entry.cadence in setOf("endgame", "rotation") -> "N일 주기"
+        entry.cadence in setOf("endgame", "rotation", "interval") -> "N일 주기"
         else -> throw IllegalArgumentException("작업 주기 확인 필요")
     }
 

@@ -120,7 +120,12 @@ def run_account_check(settings, todoist=None, store=None, read_only=False, now=N
                     desc["action"] = "Todoist/기록 저장소 미연결"
                 else:
                     until = status.metric_expiries.get(binding.metric) if binding.kind in ("rotation", "endgame") else None
-                    period = current_period(game, "rotation" if binding.kind == "endgame" else binding.kind,
+                    fixed=None
+                    if binding.kind=="interval":
+                        # The exact task date is required below; never fabricate a server period.
+                        period=True if status.metric_windows.get(binding.metric) else None
+                    else:
+                        period = current_period(game, "rotation" if binding.kind == "endgame" else binding.kind,
                                             local, hours, times, until, weekdays)
                     # Unknown season / score-only / old season MUST NOT cause automatic check.
                     if binding.kind == "endgame" and not (type(until) is int and until > local.timestamp()):
@@ -129,7 +134,8 @@ def run_account_check(settings, todoist=None, store=None, read_only=False, now=N
                         desc["action"] = "회차 또는 서버 종료 시간 확인 불가: 보류"
                     else:
                         # 게임, 계정, 콘텐츠, 기간을 포함해 회차 간 교차완료를 방지.
-                        key = f"account:{game}:{uid}:{binding.kind}:{binding.metric}:{period.key}"
+                        period_key=("api:"+":".join(str(n) for n in status.metric_windows[binding.metric])) if binding.kind=="interval" else period.key
+                        key = f"account:{game}:{uid}:{binding.kind}:{binding.metric}:{period_key}"
                         if _done_before(store, key):
                             desc["action"] = "이 회차는 이미 완료 처리함"
                         else:
@@ -138,15 +144,23 @@ def run_account_check(settings, todoist=None, store=None, read_only=False, now=N
                             matching = [t for t in tasks if t.get("content") == binding.title
                                         and task_game(t) == game
                                         and not t.get("checked") and not t.get("is_completed")]
+                            if binding.project_name and binding.section_name:
+                                location=todoist.named_location(binding.project_name,binding.section_name)
+                                matching=[t for t in matching if location and str(t.get('project_id'))==location[0] and str(t.get('section_id'))==location[1]]
+                            if binding.kind=="interval" and len(matching)==1:
+                                from .fixed_cycles import fixed_occurrence
+                                fixed=fixed_occurrence(matching[0],binding.interval_days,status.metric_windows.get(binding.metric),local,binding.completion)
                             if len(matching) != 1:
                                 desc["action"] = "정확히 일치하는 활성 작업이 하나가 아님: 보류"
                             elif not due_is_eligible(matching[0], local):
                                 desc["action"] = "Todoist 다음 회차 또는 날짜 미설정: 보류"
+                            elif binding.kind=="interval" and (fixed is None or _done_before(store,key)):
+                                desc["action"]="현재 고정 주기·API 회차 확인 불가 또는 이미 완료: 보류"
                             elif binding.kind == "weekly" and due_date_kst(matching[0]) < period.starts_at.date():
                                 desc["action"] = "이전 주간 회차 예정일: 보류"
                             else:
                                 # 모든 기기에서 동일 회차에 동일한 UUID가 생성되도록 고정한다.
-                                occurrence = (period.starts_at.date().isoformat() if is_daily
+                                occurrence = (fixed if binding.kind=="interval" else period.starts_at.date().isoformat() if is_daily
                                               else period.key)
                                 if todoist.complete_task(matching[0], occurrence):
                                     _record_done(store, key, str(matching[0]["id"]))

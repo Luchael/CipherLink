@@ -4,6 +4,10 @@
 외부 서버에 Todoist 토큰을 전송하지 않는다.
 """
 import asyncio
+import time
+_CRISIS_CACHE = {}
+_WAR_RETRY = {}
+_INDIE_RETRY = {}
 from urllib.parse import urlencode
 
 from .credentials import read_secret
@@ -111,7 +115,35 @@ def read_endfield(config, http=None):
     if not any(region in server_name for region in ("asia", "亚洲", "아시아", "アジア")) and not cfg.get("asia_server_verified", False):
         raise ValueError("엔드필드 서버명 확인 실패. 공식 도구에서 서버 검증 후 asia_server_verified를 켜세요")
     data = service.detail(role_id, server_id)
-    return role_id, endfield_status(data, role_id, server_id)
+    key=(role_id,server_id)
+    detail=data.get('data',{});detail=detail.get('detail',detail) if isinstance(detail,dict) else {}
+    if isinstance(detail,dict) and not detail.get('indieHard') and time.time()>=_INDIE_RETRY.get(key,0):
+        try:
+            extra=service.indie_hard(role_id,server_id)
+            from .endfield_longterm import body
+            value=(body(extra) or {}).get('indieHard')
+            if isinstance(value,dict):detail['indieHard']=value
+            else:_INDIE_RETRY[key]=time.time()+3600
+        except Exception:_INDIE_RETRY[key]=time.time()+3600
+    saved=_CRISIS_CACHE.get(key,{})
+    crisis=saved.get('window')
+    if time.time()>=saved.get('retry_after',0):
+        try:
+            crisis=service.crisis_contract(role_id,server_id)
+            from .endfield_longterm import crisis_progress
+            parsed=crisis_progress(crisis)
+            if parsed:_CRISIS_CACHE[key]={'window':parsed[2],'retry_after':0}
+            else:
+                _CRISIS_CACHE[key]={**saved,'retry_after':time.time()+3600};crisis=saved.get('window')
+        except Exception:
+            _CRISIS_CACHE[key]={**saved,'retry_after':time.time()+3600}
+    war=None
+    if time.time()>=_WAR_RETRY.get(key,0):
+        try:
+            war=service.war_echoes(role_id,server_id)
+            if not isinstance((war.get('data') or {}).get('warEchoes'),dict):_WAR_RETRY[key]=time.time()+3600
+        except Exception:_WAR_RETRY[key]=time.time()+3600
+    return role_id, endfield_status(data, role_id, server_id,crisis,war=war)
 
 
 def read_arknights(config):

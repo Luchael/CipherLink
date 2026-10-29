@@ -11,14 +11,14 @@ from gametodo.task_rules import load_todoist_catalog
 
 
 class SupportCatalogTests(unittest.TestCase):
-    def test_all_36_titles_and_statuses_come_from_shared_catalog(self):
+    def test_all_39_titles_and_statuses_come_from_shared_catalog(self):
         catalog = load_todoist_catalog()
         before = deepcopy(catalog)
         rows = support_rows(catalog)
-        self.assertEqual(len(rows), 36)
+        self.assertEqual(len(rows), 39)
         self.assertEqual([row.title for row in rows], [row['title'] for row in catalog['tasks']])
         self.assertEqual(Counter(row.status for row in rows),
-                         {'auto': 16, 'conditional': 3, 'manual': 17})
+                         {'auto': 19, 'conditional': 3, 'manual': 17})
         self.assertEqual(next(row for row in rows if row.title == '[색지뢰] 일퀘').status, 'manual')
         self.assertEqual(catalog, before)
 

@@ -24,26 +24,23 @@ object EndfieldNotes {
             val value=o.opt(key)?.toString()?.toLongOrNull() ?: return null
             return value.takeIf {it in 1_500_000_000L..5_000_000_000L}?.times(1000L)
         }
-        for(index in 0 until groups.length()) {
-            val group=groups.optJSONObject(index) ?: continue
-            if(group.opt("isInActivity")==false) continue
-            val start=epoch(group,"activityStartTs") ?: continue
-            val end=epoch(group,"activityEndTs") ?: continue
-            if(nowMillis<start || nowMillis>=end) continue
+        val candidates=(0 until groups.length()).mapNotNull {i->groups.optJSONObject(i)?.let {g->epoch(g,"activityStartTs")?.takeIf {it<=nowMillis}?.let {Triple(i,g,it)}}}
+        val latest=candidates.maxOfOrNull {it.third}
+        for((index,group,start) in candidates) {
+            if(start!=latest) continue
+            val end=epoch(group,"activityEndTs")
             val rows=group.opt("dungeonGroups") as? JSONArray ?: continue
             if(rows.length()==0) continue
-            val span=(end-start)/1000
-            val length=if(span%86400==0L) "${span/86400}일" else "${span/86400}일 ${span%86400/3600}시간"
-            val period="${format.format(Instant.ofEpochMilli(start))} ~ ${format.format(Instant.ofEpochMilli(end))} KST"
+            val opened=format.format(Instant.ofEpochMilli(start))
+            val bonus=if(end!=null && end>start) format.format(Instant.ofEpochMilli(end))+" KST"+(if(nowMillis>=end) " (종료)" else "") else "정보 없음"
             for((field,name) in listOf("normalDungeon" to "일반","hardDungeon" to "고난도")) {
                 val flags=(0 until rows.length()).map {i->
                     (rows.optJSONObject(i)?.opt(field) as? JSONObject)?.opt("isPass")
                 }
                 if(flags.any {it !is Boolean}) continue
                 result+=AccountGauge("endfield",role.uid,"umbral_${index}_$field",flags.count {it==true},flags.size,
-                    periodKey="umbral:$start:$end",periodStartMs=start,periodEndMs=end,
                     displayTitle="그림자 이정표 · $name",
-                    displayDetail="이번 운영 기간 $period ($length) · 반복 주기 미확인 · 읽기 전용")
+                    displayDetail="최신 시리즈 개방 $opened KST · 부가 이벤트 종료 $bonus · 본체 클리어 기록")
             }
         }
         return result

@@ -31,6 +31,13 @@ class Todoist:
         self.section_id = str(sections[0]["id"])
         self.project_id = str(sections[0]["project_id"])
 
+    def named_location(self,project_name,section_name):
+        projects=[p for p in self.http.paginated(f"{BASE}/projects") if str(p.get('name','')).casefold()==project_name.casefold()]
+        if len(projects)!=1:return None
+        pid=str(projects[0]['id'])
+        sections=[s for s in self.http.paginated(f"{BASE}/sections") if str(s.get('project_id'))==pid and s.get('name')==section_name]
+        return (pid,str(sections[0]['id'])) if len(sections)==1 else None
+
     def all_tasks(self):
         return list(self.http.paginated(f"{BASE}/tasks"))
 

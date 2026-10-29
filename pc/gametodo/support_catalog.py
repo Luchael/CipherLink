@@ -35,7 +35,7 @@ def task_group(row):
         return '주간'
     if cadence == 'monthly' or row.get('metric') in ('theater', 'spiral'):
         return '월간'
-    if cadence in ('endgame', 'rotation'):
+    if cadence in ('endgame', 'rotation', 'interval'):
         return 'N일 주기'
     raise ValueError('지원 현황에 표시할 작업 주기를 확인할 수 없습니다')
 

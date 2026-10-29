@@ -62,6 +62,7 @@ class Desktop:
         self.auto_started = False
         self.confirmed_todoist = False
         self.status = tk.StringVar(value="로그인이 필요한지 확인해주세요")
+        self.notice = tk.StringVar(value="준비됐어요")
         self._draw()
         self.root.after(150, self._process_messages)
         self.root.protocol("WM_DELETE_WINDOW", self._close)
@@ -168,6 +169,9 @@ class Desktop:
         tk.Label(header, textvariable=self.activity_text, bg="#173B37", fg=COLOR_ACCENT,
                  font=("맑은 고딕", 10, "bold"), padx=14, pady=8).pack(side="right")
 
+        self.notice_label=tk.Label(right,textvariable=self.notice,bg="#173039",fg=COLOR_ACCENT,
+            font=("맑은 고딕",11),anchor="w",justify="left",wraplength=780,padx=14,pady=10)
+        self.notice_label.pack(fill="x",padx=28,pady=(12,12))
         self.page_holder = tk.Frame(right, bg=COLOR_BG)
         self.page_holder.pack(fill="both", expand=True, padx=25, pady=(0, 9))
         for key, _ in self._page_names:
@@ -266,7 +270,16 @@ class Desktop:
         self._label(card,"명일방주는 23:59(KST)에 하루 한 번 로그인합니다. 게임 세션이 종료될 수 있습니다.",
                     9,COLOR_MUTED).pack(anchor="w",pady=(8,0))
         card=self._card(settings_page,"Windows 시작 프로그램","관리자 권한 없이 로그인 시 자동 실행합니다.")
-        self._button(card,"시작 프로그램 등록",self._enable_windows_startup).pack(anchor="w",pady=7)
+        self.startup_status=tk.StringVar()
+        self._label(card,"현재 상태",10,COLOR_MUTED).pack(anchor="w")
+        tk.Label(card,textvariable=self.startup_status,bg=COLOR_CARD,fg=COLOR_ACCENT,font=("맑은 고딕",12,"bold")).pack(anchor="w",pady=(4,10))
+        actions=tk.Frame(card,bg=COLOR_CARD);actions.pack(fill="x")
+        self.startup_enable=self._button(actions,"등록",self._enable_windows_startup,True);self.startup_enable.pack(side="left",padx=(0,8))
+        self.startup_disable=self._button(actions,"해제",self._disable_windows_startup);self.startup_disable.pack(side="left",padx=(0,8))
+        self._button(actions,"상태 새로고침",self._refresh_startup).pack(side="left",padx=(0,8))
+        self._button(card,"Windows 시작 앱 설정",self._open_startup_settings).pack(anchor="w",pady=8)
+        self._refresh_startup()
+        self.root.bind("<FocusIn>",lambda event:self._refresh_startup() if event.widget==self.root else None)
 
         logpage=self.pages["logs"]
         self._page_intro(logpage,"동기화 결과와 연결 상태를 확인하세요. 인증정보는 표시하지 않습니다.")
@@ -318,7 +331,13 @@ class Desktop:
                                      "     HoYoLAB: " + ("연결 정보 저장됨" if hoyo else "로그인 필요") +
                                      "     SKPORT: " + ("연결 정보 저장됨" if skport else "로그인 필요")))
 
+    def _feedback(self,message):
+        summary=next((line.strip() for line in str(message).splitlines() if line.strip()),"완료했어요")[:180]
+        self.notice.set(summary);self.status.set(summary[:100])
+        self.notice_label.configure(fg="#FFB5A8" if summary.startswith("[오류]") else COLOR_ACCENT)
+
     def _print(self, message):
+        self._feedback(message)
         self.logs.configure(state="normal")
         self.logs.insert("end", message + "\n")
         self.logs.see("end")
@@ -340,7 +359,6 @@ class Desktop:
                     self.activity_text.set("●  확인 필요")
                     self.status.set("확인 필요")
                     self._print("[오류] " + str(data))
-                    self._show_page("logs")
                 elif kind == "todoist_verified":
                     self.busy = False
                     self.confirmed_todoist = True
@@ -376,7 +394,7 @@ class Desktop:
             self._print("이미 실행 중인 작업이 있어요.")
             return
         self.busy = True
-        self.status.set(title)
+        self._feedback(title)
         self.activity_text.set("●  진행 중")
         def job():
             try:
@@ -637,8 +655,9 @@ class Desktop:
                 row.pack(fill="x",pady=(12,5))
                 self._label(row,item.title,12,COLOR_TEXT,True).pack(side="left")
                 self._label(row,item.value,14,COLOR_ACCENT,True).pack(side="right")
-                ttk.Progressbar(card,maximum=100,value=item.percent,style="CipherLink.Horizontal.TProgressbar").pack(fill="x",pady=(0,5))
-                self._label(card,item.state,10,COLOR_MUTED).pack(anchor="w")
+                if item.show_bar:
+                    ttk.Progressbar(card,maximum=100,value=item.percent,style="CipherLink.Horizontal.TProgressbar").pack(fill="x",pady=(0,5))
+                if item.state:self._label(card,item.state,10,COLOR_MUTED).pack(anchor="w")
                 if item.detail:
                     tk.Label(card,text=item.detail,bg=COLOR_CARD,fg=COLOR_MUTED,font=("맑은 고딕",9),
                              wraplength=740,justify="left",anchor="w").pack(fill="x",pady=(4,0))
@@ -763,35 +782,33 @@ class Desktop:
         self.auto_started = False
         self._print("자동 확인을 중지했습니다.")
 
+    def _refresh_startup(self):
+        from .startup import state
+        value=state()
+        self.startup_status.set(value.message)
+        self.startup_enable.configure(state="disabled" if value.registered and value.current and not value.blocked else "normal")
+        self.startup_disable.configure(state="normal" if value.registered else "disabled")
+        return value
+
     def _enable_windows_startup(self):
-        """Windows HKCU 등록: 관리자 권한 없이 현재 사용자 로그인 시 앱 실행."""
+        from .startup import enable
+        try:
+            value=enable();self._refresh_startup()
+            self._print("시작 프로그램 · "+value.message)
+        except OSError as exc:self._print("[오류] 시작 프로그램 등록 실패 · "+type(exc).__name__)
+
+    def _disable_windows_startup(self):
+        from .startup import disable
+        try:
+            value=disable();self._refresh_startup()
+            self._print("시작 프로그램 · "+value.message)
+        except OSError as exc:self._print("[오류] 시작 프로그램 해제 실패 · "+type(exc).__name__)
+
+    def _open_startup_settings(self):
         import os
-        import sys
-        if os.name != "nt":
-            self._print("Windows 전용 기능입니다.")
-            return
-        import winreg
-        if getattr(sys, "frozen", False):
-            command = '"' + sys.executable + '"'
-        else:
-            launcher = Path(__file__).resolve().parents[1] / "gametodo_desktop.py"
-            pythonw = str(Path(sys.executable).with_name("pythonw.exe"))
-            command = f'"{pythonw}" "{launcher}"'
-        with winreg.CreateKey(winreg.HKEY_CURRENT_USER,
-                              r"Software\Microsoft\Windows\CurrentVersion\Run") as key:
-            # 구버전에서 만든 시작 항목을 중복 실행하지 않도록, 자신이 등록한
-            # GameTodo 항목만 안전하게 정리하고 새 이름으로 등록한다.
-            try:
-                old_cmd, _ = winreg.QueryValueEx(key, "GameTodo")
-            except FileNotFoundError:
-                old_cmd = ""
-            if isinstance(old_cmd, str) and any(
-                marker in old_cmd.lower()
-                for marker in ("gametodo_desktop.py", "questlink.exe", "cipherlink.exe")
-            ):
-                winreg.DeleteValue(key, "GameTodo")
-            winreg.SetValueEx(key, "CipherLink", 0, winreg.REG_SZ, command)
-        self._print("Windows에 로그인하면 사이퍼링크가 자동 시작됩니다. 해제는 Windows 시작프로그램 설정에서 가능해요.")
+        if os.name!="nt":self._print("Windows에서 시작 앱 설정을 열 수 있어요");return
+        try:os.startfile("ms-settings:startupapps")
+        except OSError:self._print("[오류] Windows 시작 앱 설정을 열지 못했어요")
 
     def _close(self):
         self.watcher.set()

@@ -57,8 +57,7 @@ object RecurrenceWindow {
     private fun parseRule(raw: String): Interval? {
         val rule = raw.trim().lowercase()
             .replace(Regex("\\s+"), " ")
-            .removePrefix("every! ")
-            .removePrefix("every ")
+            .replace(Regex("^every!?\\s*"), "")
         // '매월 16일'의 16은 간격이 아니라 월의 날짜다. 숫자 간격으로 잘못 읽지 않는다.
         if (rule.startsWith("매월") || rule.startsWith("매달")) return Interval(1, Unit.MONTH)
         // 숫자가 있는 규칙은 먼저 처리한다. 매 N일, N일마다, every N days 등.
@@ -93,6 +92,11 @@ object RecurrenceWindow {
                 Interval(1, Unit.MONTH)
             else -> null
         }
+    }
+
+    fun fixedDays(raw:String?):Int? {
+        val parsed=raw?.let(::parseRule) ?: return null
+        return when(parsed.unit) {Unit.DAY->parsed.count;Unit.WEEK->parsed.count*7;Unit.MONTH->null}
     }
 
     /**
