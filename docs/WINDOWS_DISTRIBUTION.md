@@ -2,13 +2,15 @@
 
 이 저장소는 Windows용 `CipherLink.exe`를 만드는 경로를 제공합니다. **현재 Windows EXE 실행·공식 로그인·설치·업데이트와 Android APK 실환경 동작은 미검증입니다.** Linux에서의 Python 회귀 테스트 통과 또는 GitHub Actions 빌드 성공은 이 검증을 대신하지 않습니다.
 
+최신 EXE·APK는 [Releases](https://github.com/Luchael/CipherLink/releases/latest)에서 받습니다. [비공개 다운로드·버전별 배포 안내](DOWNLOAD_AND_UPDATES.md)를 참고하세요.
+
 ## EXE 만들기 — 개발자
 
 GitHub의 Actions → **Build Windows EXE (manual, unverified)** → **Run workflow**를 선택합니다. 워크플로는 수동 실행만 가능하며 릴리스를 자동 게시하지 않습니다. 성공한 실행의 `CipherLink-Windows-unverified-<commit>` 아티팩트를 내려받습니다. 아티팩트에는 EXE와 `SHA256SUMS.txt`, 이 안내가 들어 있습니다. 아티팩트 보관 기간은 14일입니다.
 
 Windows 개발 PC에서는 Python 3.10 이상으로 `pc/build_windows.bat`를 실행해 같은 빌드를 수행할 수 있습니다. 스크립트는 로그인·엔드 콘텐츠 의존성 설치, 모듈 import, 필수 리소스 확인, PC 전체 unittest를 통과한 뒤 PyInstaller로 패키징합니다. CI에서는 `CIPHERLINK_BUILD_NONINTERACTIVE=1`로 일시정지를 생략합니다. 실패한 실행 이후 남은 `dist/` 파일을 새 빌드 결과로 배포하지 마세요.
 
-이 경로는 휴대용 EXE를 만듭니다. 설치 프로그램, 코드 서명, 자동 업데이트 및 OCR용 별도 도구 패키징은 아직 제공하지 않습니다. Windows에서 실제 빌드가 성공했는지도 실행 결과로 별도 확인해야 합니다.
+이 경로는 휴대용 EXE를 만듭니다. 설치 프로그램, 코드 서명, 자동 업데이트 및 OCR용 별도 도구 패키징은 아직 제공하지 않습니다. 0.11.2 Windows CI 빌드는 성공했습니다. 실제 Windows에서의 실행·로그인 검증은 별도로 필요합니다.
 
 ## 실행 — 최종 사용자
 

@@ -232,6 +232,11 @@ class MainActivity : Activity() {
         for((key,name) in GameLookupSettings.names.filterKeys {it in GameLookupSettings.implemented}) {
             toggle(name,"연결된 계정의 진행도를 읽기 전용으로 확인합니다.",GameLookupSettings.enabled(this,key)) {GameLookupSettings.setEnabled(this,key,it)}
         }
+        rowTitle("앱 정보와 업데이트")
+        val version=packageManager.getPackageInfo(packageName,0).versionName ?: ""
+        addCard("사이퍼링크 $version","최신 설치 파일과 버전별 변경 내용을 GitHub에서 확인합니다. 비공개 저장소는 브라우저에서 GitHub 로그인이 필요해요.","최신 버전 다운로드") {
+            startActivity(Intent(Intent.ACTION_VIEW,android.net.Uri.parse("https://github.com/Luchael/CipherLink/releases/latest")))
+        }
         action("Todoist 연결 해제") {
             AlertDialog.Builder(this).setTitle("Todoist 연결을 해제할까요?").setMessage("게임 계정과 기존 Todoist 작업은 그대로 유지됩니다.")
                 .setNegativeButton("취소",null).setPositiveButton("연결 해제") {_,_->TodoistAuth(this).logout();render()}.show()

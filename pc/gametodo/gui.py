@@ -7,6 +7,7 @@
 """
 from datetime import datetime, timedelta
 import json
+import webbrowser
 from pathlib import Path
 import queue
 import threading
@@ -247,6 +248,9 @@ class Desktop:
 
         settings_page=self.page_contents["settings"]
         self._page_intro(settings_page,"각 게임의 계정 API 자동 조회를 독립적으로 관리합니다.")
+        from . import __version__
+        card=self._card(settings_page,f"사이퍼링크 {__version__} · 업데이트","GitHub에서 최신 설치 파일과 변경 내용을 확인합니다. 비공개 저장소는 GitHub 로그인이 필요합니다.")
+        self._button(card,"최신 버전 다운로드",lambda: webbrowser.open("https://github.com/Luchael/CipherLink/releases/latest"),True).pack(anchor="w",pady=7)
         card=self._card(settings_page,"게임별 계정 조회","ON/OFF는 다음 동기화부터 적용됩니다.")
         from .lookup_policy import ALL as lookup_games, enabled as lookup_enabled
         live_cfg=load_settings(str(self.cfg))

@@ -1,0 +1,79 @@
+name: Publish versioned EXE and APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version matching the source and signed APK draft (for example 0.11.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cipherlink-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  windows-and-release:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      CIPHERLINK_BUILD_NONINTERACTIVE: '1'
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Validate input
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_VERSION -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') { throw 'Invalid version' }
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ inputs.version }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify tag and APK draft
+        shell: pwsh
+        run: |
+          python tools/release_metadata.py $env:RELEASE_VERSION
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $draft = gh release view "v$env:RELEASE_VERSION" --json isDraft --jq .isDraft
+          if ($LASTEXITCODE -ne 0 -or $draft -ne 'true') { throw 'A draft release with a signed APK is required' }
+          New-Item -ItemType Directory -Path publish -Force | Out-Null
+          gh release download "v$env:RELEASE_VERSION" --pattern CipherLink-Android.apk --dir publish
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test and package Windows
+        working-directory: pc
+        shell: pwsh
+        run: |
+          & cmd /d /c build_windows.bat 2>&1 | Tee-Object -FilePath build-output.log
+          $buildExit = $LASTEXITCODE
+          if ($buildExit -ne 0) {
+            Get-Content build-output.log | Select-String -Pattern 'Error:|ERROR:|FAIL:|FAILED|Traceback|No module named' | Select-Object -Last 12 | ForEach-Object {
+              $safe = $_.Line -replace 'https?://\S+', '<url>'
+              $safe = $safe.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+              Write-Output "::error::$safe"
+            }
+            exit $buildExit
+          }
+      - name: Assemble checksums and update metadata
+        shell: pwsh
+        run: |
+          Copy-Item pc/dist/CipherLink.exe publish/CipherLink-Windows.exe
+          python tools/release_metadata.py $env:RELEASE_VERSION --directory publish
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Publish only after both files are ready
+        shell: pwsh
+        run: |
+          gh release upload "v$env:RELEASE_VERSION" publish/CipherLink-Windows.exe publish/SHA256SUMS.txt publish/update.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $private = gh api "repos/$env:GITHUB_REPOSITORY" --jq .private
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($private -ne 'true') {
+            Write-Output '::notice::Files ready in draft. Make the repository private before publishing.'
+            exit 0
+          }
+          gh release edit "v$env:RELEASE_VERSION" --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
