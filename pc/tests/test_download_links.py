@@ -16,8 +16,9 @@ class ActualDownloadTests(unittest.TestCase):
         text=downloads.render_release(self.metadata(),'0.11.7')
         self.assertIn('로그인',text)
         self.assertLess(text.index('Windows-Setup.exe'),text.index('/CipherLink-Windows.exe'))
-        self.assertNotIn('[Android',text)
-        self.assertIn('아직 GitHub에 업로드되지',text)
+        self.assertIn('[Android APK 다운로드 — 업로드 예정]',text)
+        self.assertIn('직접 올리기 전까지는 다운로드되지',text)
+        self.assertIn('/download/untagged-fixture/CipherLink-Android.apk',text)
     def test_old_release_completion_cannot_replace_newer_downloads(self):
         old=downloads.render_release(self.metadata(),'0.11.7')
         readme='intro\n'+old+'\nother content'

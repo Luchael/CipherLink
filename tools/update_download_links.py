@@ -48,7 +48,12 @@ def render_release(metadata,version,repository=REPOSITORY):
             url=safe_url(assets[name]['url'],repository,'download')
             lines.append(f'- [{label}]({url})');count+=1
     if not count:raise ValueError('No actual download files')
-    if 'CipherLink-Android.apk' not in assets:lines+=['','Android APK는 아직 GitHub에 업로드되지 않았습니다.']
+    if 'CipherLink-Android.apk' not in assets:
+        # User explicitly requested a placeholder for their manual APK upload.
+        base,tag=page.rsplit('/tag/',1)
+        planned=safe_url(base+'/download/'+tag+'/CipherLink-Android.apk',repository,'download')
+        lines+=['',f'- [Android APK 다운로드 — 업로드 예정]({planned})',
+                '  파일을 직접 올리기 전까지는 다운로드되지 않습니다. 파일 이름은 `CipherLink-Android.apk`를 사용하세요.']
     lines+=['',f'[버전 상세 및 파일 목록]({page})','',END]
     return '\n'.join(lines)
 
