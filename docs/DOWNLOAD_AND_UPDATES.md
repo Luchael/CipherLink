@@ -26,7 +26,7 @@ PC `gametodo.__version__`와 Windows 버전 리소스, Android `versionName`을 
 python tools/publish_release.py X.Y.Z --output /workspace/artifacts
 ```
 
-이 명령은 깨끗한 작업 트리/일치하는 버전/릴리스 노트를 확인하고, 기존 서명으로 APK를 빌드합니다. APK 공개 메타데이터(패키지·버전·서명 인증서 해시)와 무결성을 검사한 뒤 버전 태그와 초안 릴리스를 만들고 APK를 업로드합니다. 서명 키는 이 환경에만 남으며 저장소/CI에 올리지 않습니다.
+이 명령은 깨끗한 작업 트리/일치하는 버전/릴리스 노트를 확인하고, 기존 서명으로 APK를 빌드합니다. APK 공개 메타데이터(패키지·버전·서명 인증서 해시)와 무결성을 검사한 뒤 실제 Git 버전 태그를 원본 커밋에 만들어 푸시하고 초안 릴리스를 만든 뒤 APK를 업로드합니다. 서명 키는 이 환경에만 남으며 저장소/CI에 올리지 않습니다.
 
 이후 GitHub Actions **Publish versioned EXE and APK**가 해당 태그의 소스를 체크아웃하여 Windows 회귀 테스트와 EXE 빌드를 실행합니다. EXE·APK·SHA256SUMS.txt·update.json이 준비되고 저장소가 비공개일 때만 최신 릴리스를 게시합니다. 실패하면 초안으로 남습니다. 이미 게시한 릴리스 파일은 덮어쓰지 않습니다. 초안 재개 시 기존 EXE는 재사용합니다.
 

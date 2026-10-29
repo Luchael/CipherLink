@@ -74,6 +74,8 @@ def main():
             if command(['git','diff',target,'HEAD','--','android','pc'],'Tagged application source check'):
                 raise SystemExit('Application source changed since the tag; create a new version')
         else:
+            command(['git','tag',tag,head],'Version tag creation')
+            command(['git','push','origin',f'refs/tags/{tag}'],'Version tag push')
             command(['gh','release','create',tag,'--repo',repo,'--target',head,'--draft',
                      '--title',f'사이퍼링크 {version}','--notes-file',str(notes)],'Draft release creation')
         command(['gh','release','upload',tag,str(asset),'--repo',repo],'APK upload')
