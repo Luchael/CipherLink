@@ -1,0 +1,26 @@
+name: Receive signed APK privately
+on:
+  push:
+    branches: [main]
+    paths: ['.github/apk-transfer-request.json']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: cipherlink-apk-transfer
+  cancel-in-progress: false
+jobs:
+  receive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Prepare encrypted transfer
+        run: python -m pip install 'cryptography>=46,<51'
+      - name: Verify and attach APK to private draft
+        run: python tools/apk_git_transfer.py receive
