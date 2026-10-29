@@ -47,6 +47,6 @@ python tools/publish_release.py X.Y.Z --finalize
 
 - PC 테스트 244개와 Android 빌드·서명·버전 29→31 업데이트 메타데이터 검사 통과. PC 설정의 다운로드 버튼을 실제 Tk 화면에서 클릭하고 기대한 브라우저 주소 호출을 모의 검증했다.
 - [Windows 0.11.3 릴리스 CI](https://github.com/Luchael/CipherLink/actions/runs/40792474080) 성공. Windows EXE(65,739,572바이트)를 v0.11.3 초안에 첨부했다.
-- [소유자 전용 릴리스 초안](https://github.com/Luchael/CipherLink/releases/tag/untagged-81e0e6aa9a23fbe2a2ec). 현재 EXE만 있으며 APK 첨부와 최종 체크섬 묶음은 대기 중이다. 저장소가 아직 공개이므로 게시하지 않았다. README의 `/latest` 버튼은 게시 완료 후 활성화된다.
+- [소유자 전용 릴리스 초안](https://github.com/Luchael/CipherLink/releases). 현재 EXE만 있으며 APK 첨부와 최종 체크섬 묶음은 대기 중이다. 저장소가 아직 공개이므로 게시하지 않았다. README의 `/latest` 버튼은 게시 완료 후 활성화된다.
 - APK는 채팅의 `CipherLink-0.11.3.apk`로 우선 제공한다. SHA256 `f43f3881a574db6eecc7a580377be2b55e3a1fde89f58e0ca60b258750e8f3ac`.
 - 남은 외부 조건: 소유자의 저장소 **Make private**, 환경 설정의 GitHub 파일 전송 도메인 적용. 이후 `--resume`으로 APK 첨부/기존 EXE 재사용/체크섬 생성과 비공개 게시를 마무리한다. 실기기·Windows EXE 실제 실행은 미검증이다.
