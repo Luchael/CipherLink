@@ -3,15 +3,16 @@
 게임 진행도와 할 일을 Todoist에 연결하는 Windows·Android 앱입니다. 한국어와 한국 시간(KST)을 사용하며, PC가 꺼져 있어도 Android에서 독립적으로 동기화합니다.
 
 <!-- cipherlink-downloads -->
-### 설치 파일 · 0.11.6
+### 설치 파일 · 0.11.7
 
 **GitHub 저장소 소유자 계정으로 로그인한 뒤 다운로드하세요.**
 
-- [**Windows 실행 파일 다운로드**](https://github.com/Luchael/CipherLink/releases/download/untagged-5dc57ffee0771f027a7a/CipherLink-Windows.exe)
+- [**Windows 설치·업데이트 다운로드**](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Windows-Setup.exe)
+- [Windows 무설치 실행 파일](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Windows.exe)
 
-설치·업데이트·제거를 지원하는 설치 프로그램을 준비하고 있습니다. Android APK는 아직 GitHub에 업로드되지 않았습니다.
+Android APK는 아직 GitHub에 업로드되지 않았습니다.
 
-[버전 상세 및 파일 목록](https://github.com/Luchael/CipherLink/releases/tag/untagged-5dc57ffee0771f027a7a)
+[버전 상세 및 파일 목록](https://github.com/Luchael/CipherLink/releases/tag/untagged-f06c6b073a26012ef117)
 
 <!-- /cipherlink-downloads -->
 
