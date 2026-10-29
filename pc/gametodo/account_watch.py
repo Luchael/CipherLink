@@ -13,7 +13,7 @@ import logging
 import time
 
 from .account_sources import read_hoyolab, read_wuthering, read_endfield, read_arknights
-from .cycles import KST, before_today_reset, current_period, due_is_eligible
+from .cycles import KST, before_today_reset, current_period, due_is_eligible, due_date_kst
 from .games import task_game
 from .task_rules import configured_bindings, gauge_for
 from .lookup_policy import enabled as lookup_enabled
@@ -142,6 +142,8 @@ def run_account_check(settings, todoist=None, store=None, read_only=False, now=N
                                 desc["action"] = "정확히 일치하는 활성 작업이 하나가 아님: 보류"
                             elif not due_is_eligible(matching[0], local):
                                 desc["action"] = "Todoist 다음 회차 또는 날짜 미설정: 보류"
+                            elif binding.kind == "weekly" and due_date_kst(matching[0]) < period.starts_at.date():
+                                desc["action"] = "이전 주간 회차 예정일: 보류"
                             else:
                                 # 모든 기기에서 동일 회차에 동일한 UUID가 생성되도록 고정한다.
                                 occurrence = (period.starts_at.date().isoformat() if is_daily

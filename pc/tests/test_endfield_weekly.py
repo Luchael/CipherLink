@@ -34,7 +34,8 @@ class EndfieldWeeklyTests(unittest.TestCase):
         self.assertEqual(api.calls,[('weekly','weekly:2026-10-26')])
     def test_future_due_wrong_title_or_low_score_never_closes(self):
         for api,state in [(Todo(due='2026-11-02'),self.state()),
-                          (Todo(title='[엔필] 다른 임무'),self.state()),(Todo(),self.state(99))]:
+                          (Todo(title='[엔필] 다른 임무'),self.state()),(Todo(),self.state(99)),
+                          (Todo(due='2026-10-19'),self.state())]:
             with patch('gametodo.account_watch.read_endfield',return_value=('123',state)):
                 run_account_check(self.cfg,api,Memory(),now=datetime(2026,10,29,12,tzinfo=KST))
             self.assertEqual(api.calls,[])

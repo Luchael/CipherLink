@@ -22,7 +22,7 @@
 
 ## 개발
 
-현재 소스 버전: **PC·Android 0.11.4**.
+현재 소스 버전: **PC·Android 0.11.5**.
 
 ```bash
 cd pc
@@ -37,4 +37,4 @@ Android는 `android/`를 Android Studio에서 열어 빌드합니다. JDK 17과 
 
 회귀 테스트와 빌드 성공은 실제 계정 로그인·게임 API·Windows 실행·Android 설치 검증을 대신하지 않습니다. 확인하지 못한 기록을 0점이나 완료로 간주하지 않습니다.
 
-[진행도·가챠 수정 내역](docs/PROGRESS_0114.md) · [제품·Todoist 기준](docs/PRODUCT_AND_TODOIST.md)
+[진행도·가챠 수정 내역](docs/PROGRESS_0115.md) · [제품·Todoist 기준](docs/PRODUCT_AND_TODOIST.md)
