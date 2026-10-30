@@ -12,15 +12,16 @@
 Windows는 정식 릴리스의 설치판으로 설치·업데이트합니다. **0.11.8의 수정은 0.11.8 설치 파일부터 적용됩니다.** Android 0.11.8은 기존 서명키가 없어 설치용 업데이트 APK를 아직 제공하지 않으며, 기존 0.11.7 APK에는 이 수정이 포함되지 않습니다.
 
 <!-- cipherlink-downloads -->
-### 설치 파일 · 0.11.7
+### 설치 파일 · 0.11.8
 
-**GitHub 저장소 소유자 계정으로 로그인한 뒤 다운로드하세요.**
+- [**Windows 설치·업데이트 다운로드**](https://github.com/Luchael/CipherLink/releases/download/v0.11.8/CipherLink-Windows-Setup.exe)
+- [Windows 무설치 실행 파일](https://github.com/Luchael/CipherLink/releases/download/v0.11.8/CipherLink-Windows.exe)
 
-- [**Windows 설치·업데이트 다운로드**](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Windows-Setup.exe)
-- [Windows 무설치 실행 파일](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Windows.exe)
-- [Android APK 다운로드](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Android.apk)
+Android 0.11.8 설치용 업데이트 APK는 기존 서명키 복구 후 제공됩니다.
+- [Android 기존 버전 0.11.7 다운로드](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Android.apk)
+  기존 APK는 소유자 계정 로그인이 필요하며, 새 버전의 수정은 포함하지 않습니다.
 
-[버전 상세 및 파일 목록](https://github.com/Luchael/CipherLink/releases/tag/untagged-f06c6b073a26012ef117)
+[버전 상세 및 파일 목록](https://github.com/Luchael/CipherLink/releases/tag/v0.11.8)
 
 <!-- /cipherlink-downloads -->
 
