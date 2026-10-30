@@ -34,13 +34,15 @@ def digest(path):
     return value.hexdigest()
 
 
-def manifest(directory, version, code):
-    assets = {'windows': 'CipherLink-Windows.exe', 'android': 'CipherLink-Android.apk'}
+def manifest(directory, version, code, windows_only=False):
+    assets = {'windows': 'CipherLink-Windows.exe'}
+    if not windows_only: assets['android'] = 'CipherLink-Android.apk'
+    else: assets['windows_installer'] = 'CipherLink-Windows-Setup.exe'
     if not all((directory/name).is_file() and (directory/name).stat().st_size > 0 for name in assets.values()):
-        raise ValueError('Both non-empty EXE and APK assets are required')
+        raise ValueError('Required release assets must be present and non-empty')
     installer='CipherLink-Windows-Setup.exe'
     if (directory/installer).is_file():assets['windows_installer']=installer
-    return {'version': version, 'android_version_code': code,
+    return {'version': version, 'android_version_code': None if windows_only else code,
             **{platform: {'name': name, 'sha256': digest(directory/name)} for platform, name in assets.items()}}
 
 
@@ -48,12 +50,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('version')
     parser.add_argument('--directory', type=Path)
+    parser.add_argument('--windows-only', action='store_true', help='Publish verified Windows assets without claiming an Android update')
     args = parser.parse_args()
     version, code = project_version()
     if args.version != version:
         parser.error('Tag version does not match source versions')
     if args.directory:
-        result = manifest(args.directory,version,code)
+        result = manifest(args.directory,version,code,windows_only=args.windows_only)
         (args.directory/'update.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         (args.directory/'SHA256SUMS.txt').write_text(''.join(
             f"{result[p]['sha256']}  {result[p]['name']}\n" for p in ('windows_installer','windows','android') if p in result),encoding='utf-8')

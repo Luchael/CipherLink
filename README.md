@@ -6,10 +6,10 @@
 
 | 구분 | 버전 | 바로 가기 |
 | --- | --- | --- |
-| 기존 설치 파일 | **0.11.7** | 아래 Windows·Android 다운로드 |
-| 최신 개발 소스 | **0.11.8** | [소스 보기](https://github.com/Luchael/CipherLink/tree/codex/reset-floating-0118) · [변경·검증 기록](docs/RESET_FLOATING_0118.md) |
+| 설치 파일 | **플랫폼별 버전은 아래 링크 참고** | Windows 설치판·무설치판, Android 이전 버전 |
+| 최신 소스 | **0.11.8 · main** | [소스 보기](https://github.com/Luchael/CipherLink/tree/main) · [변경·검증 기록](docs/RESET_FLOATING_0118.md) |
 
-**0.11.8의 초기화·플로팅 수정은 아래 0.11.7 설치 파일에 포함되어 있지 않습니다.** 0.11.8은 Android 서명 없는 빌드까지 검증했으며, 기존 서명키 복구가 필요해 설치용 업데이트 APK는 아직 제공하지 않습니다. Windows 0.11.8 설치판도 아직 제공하지 않습니다.
+Windows는 정식 릴리스의 설치판으로 설치·업데이트합니다. **0.11.8의 수정은 0.11.8 설치 파일부터 적용됩니다.** Android 0.11.8은 기존 서명키가 없어 설치용 업데이트 APK를 아직 제공하지 않으며, 기존 0.11.7 APK에는 이 수정이 포함되지 않습니다.
 
 <!-- cipherlink-downloads -->
 ### 설치 파일 · 0.11.7
@@ -24,7 +24,7 @@
 
 <!-- /cipherlink-downloads -->
 
-직접 다운로드가 시작되지 않으면 위 **버전 상세 및 파일 목록 → Assets**를 열어주세요. 릴리스 초안은 소유자 계정 로그인이 필요합니다. [릴리스 목록](https://github.com/Luchael/CipherLink/releases)에서도 확인할 수 있습니다.
+직접 다운로드가 시작되지 않으면 위 **버전 상세 및 파일 목록 → Assets**를 열어주세요. 정식 릴리스는 바로 받을 수 있고, 기존 0.11.7 초안 파일은 소유자 계정 로그인이 필요합니다. [릴리스 목록](https://github.com/Luchael/CipherLink/releases)에서도 확인할 수 있습니다.
 
 ## 0.11.8에서 달라진 점
 
@@ -58,7 +58,7 @@
 
 ## 개발
 
-최신 소스는 [0.11.8 개발 브랜치](https://github.com/Luchael/CipherLink/tree/codex/reset-floating-0118)에 있습니다. [소스 ZIP 받기](https://github.com/Luchael/CipherLink/archive/refs/heads/codex/reset-floating-0118.zip)는 개발용이며 설치 파일이 아닙니다.
+최신 소스는 [main 브랜치](https://github.com/Luchael/CipherLink/tree/main)에 있습니다. [소스 ZIP 받기](https://github.com/Luchael/CipherLink/archive/refs/heads/main.zip)는 개발용이며 설치 파일이 아닙니다.
 
 PC 개발·실행:
 
@@ -75,6 +75,6 @@ Android는 [android/ 프로젝트](android/)를 Android Studio에서 엽니다. 
 
 ## 검증 범위
 
-0.11.8은 PC 테스트 **290개**, Kotlin 회귀 프로그램 **28개**, Android 서명 없는 release 빌드를 통과했습니다. 실제 계정 로그인·게임 API·Todoist 생성·Windows 실행·Android 설치 성공을 의미하지 않습니다. 확인하지 못한 기록은 0점이나 완료로 간주하지 않습니다.
+0.11.8은 PC 테스트 **292개**, Kotlin 회귀 프로그램 **28개**, Android 서명 없는 release 빌드를 통과했습니다. 실제 계정 로그인·게임 API·Todoist 생성·Windows 실행·Android 설치 성공을 의미하지 않습니다. 확인하지 못한 기록은 0점이나 완료로 간주하지 않습니다.
 
 [최신 변경 내역 · 0.11.8](docs/RESET_FLOATING_0118.md) · [기존 설치판 · 0.11.7](docs/INSTALLER_0117.md) · [이전 기능 변경 · 0.11.6](docs/PROGRESS_0116.md)

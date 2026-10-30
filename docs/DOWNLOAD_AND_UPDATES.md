@@ -2,15 +2,17 @@
 
 ## 다운로드
 
-[저장소 첫 화면](https://github.com/Luchael/CipherLink#readme)의 **Windows 설치·업데이트 다운로드**를 누른다. 버튼은 실제 릴리스에 첨부된 파일만 연결한다. 초안은 저장소 소유자 계정으로 GitHub 로그인해야 보인다. README의 버전 상세 링크에서 Assets를 펼쳐도 된다. 소스 ZIP은 설치 파일이 아니다.
+[저장소 첫 화면](https://github.com/Luchael/CipherLink#readme)의 **Windows 설치·업데이트 다운로드**를 누른다. 버튼은 실제 릴리스에 첨부된 파일만 연결한다. 기존 초안 파일은 저장소 소유자 계정으로 GitHub 로그인해야 보인다. README의 버전 상세 링크에서 Assets를 펼쳐도 된다. 소스 ZIP은 설치 파일이 아니다.
 
-저장소는 현재 공개지만 설치 파일은 **초안 릴리스**에 보관한다. 사용자 요청대로 바이너리를 공개 게시하지 않는다. 저장소 공개 범위 변경과 별도 비공개 다운로드 저장소 생성은 연결 권한에서 403으로 거부됐다. 계정에 다른 협업자를 추가하지 않는다.
+## 정식 배포
+
+사용자 지시에 따라 최신 코드는 `main`에 반영하고 Windows 설치 파일은 정식 릴리스로 배포한다. `v*` 태그를 올리면 `Release CipherLink` 워크플로가 해당 태그의 소스를 빌드하고 설치·업데이트·제거 검사를 거친 뒤 실제 Windows 파일과 체크섬을 게시한다. README 링크도 첨부된 파일에 맞춰 갱신한다. 기존 초안 릴리스나 파일은 삭제하지 않는다.
 
 ## 현재 제공 버전
 
-- **설치 파일: 0.11.7.** README의 Windows 설치판·무설치판·Android APK 링크는 기존 0.11.7 릴리스 초안을 가리킨다.
-- **최신 개발 소스: 0.11.8.** [개발 브랜치](https://github.com/Luchael/CipherLink/tree/codex/reset-floating-0118)와 [초기화·플로팅 변경 기록](RESET_FLOATING_0118.md)을 확인한다. 기존 0.11.7 다운로드에 이 수정이 포함된 것은 아니다.
-- Android 0.11.8은 서명 없는 release 빌드까지만 검증됐다. 기존 서명키를 복구한 뒤 같은 서명으로 업데이트 APK를 만들어야 한다. Windows 0.11.8 설치판도 아직 제공하지 않는다.
+- **최신 소스: 0.11.8, [main](https://github.com/Luchael/CipherLink/tree/main).** [변경 기록](RESET_FLOATING_0118.md)을 참고한다.
+- **Windows:** [0.11.8 정식 릴리스](https://github.com/Luchael/CipherLink/releases/tag/v0.11.8)의 설치 파일을 사용한다. 파일은 Windows 빌드와 설치 검사가 성공한 뒤 게시된다.
+- **Android:** 0.11.8은 서명 없는 빌드까지만 검증됐다. 기존 서명키를 복구한 뒤 같은 서명으로 업데이트 APK를 만들어야 한다. README의 Android 링크는 기존 0.11.7이며, 새 버전의 수정은 포함하지 않는다.
 
 ### Android 다운로드 안내
 
@@ -41,7 +43,7 @@ APK를 열어 기존 앱 위에 업데이트한다. 같은 패키지·서명이 
 - `tools/publish_release.py`는 기존 Android 서명으로 APK를 확인하고 버전 태그·초안을 만든다. 업로드 차단 해제 후 `--resume`으로 기존 초안에 APK를 첨부할 수 있다.
 - `release.yml`은 태그의 Windows EXE와 Inno Setup 설치 파일을 만든다. `tools/build_windows_installer.ps1`은 EXE의 실제 ProductVersion을 확인한다.
 - Windows CI는 0.11.5 EXE로 만든 이전 설치판→현재 설치판 업데이트→낮은 버전 거부→제거·재설치를 실행한다. 기존 설치 경로 자동 발견, Windows 제거 등록, 사용자 데이터 보존과 다른 무설치 시작 항목 보존을 확인한 뒤 설치 파일을 첨부한다. CI에서는 게임/Todoist 계정을 연결하거나 앱을 실행하지 않는다.
-- EXE·설치 파일·APK·체크섬이 준비되고 저장소가 비공개일 때만 릴리스 게시가 가능하다. 그 전에는 초안이다.
+- 새 `release-windows.yml`은 검증한 Windows 파일을 정식 게시한다. Android가 준비되지 않았으면 Windows 전용 메타데이터를 생성하고 Android 업데이트가 있는 것처럼 표시하지 않는다. 기존 `release.yml`과 `publish_release.py`의 비공개·양 플랫폼 초안 절차는 구 배포 경로로 남아 있다.
 - `tools/update_download_links.py VERSION --github`는 현재 실제 첨부파일을 읽어 README 다운로드 부분만 갱신한다. 실제 첨부된 파일과 사용자가 요청한 APK 업로드 예정 주소를 구별하며 이전 버전 작업이 최신 링크를 덮어쓰지 않는다.
 
 실제 사용자 Windows의 로그인·SmartScreen·사용 중인 앱 종료·계정 유지와 Android 기기 설치는 CI 빌드/설치 검사와 별도로 확인한다.

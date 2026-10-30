@@ -31,6 +31,17 @@ class ReleaseMetadataTests(unittest.TestCase):
             exe.write_bytes(b'')
             with self.assertRaises(ValueError):release.manifest(folder,'0.11.3',31)
 
+    def test_windows_only_release_does_not_advertise_android(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            folder=Path(temporary)
+            (folder/'CipherLink-Windows.exe').write_bytes(b'exe')
+            with self.assertRaises(ValueError):release.manifest(folder,'0.11.8',36,windows_only=True)
+            (folder/'CipherLink-Windows-Setup.exe').write_bytes(b'installer')
+            result=release.manifest(folder,'0.11.8',36,windows_only=True)
+            self.assertNotIn('android',result)
+            self.assertIsNone(result['android_version_code'])
+            self.assertIn('windows_installer',result)
+
     def test_stale_windows_version_resource_is_rejected(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary)

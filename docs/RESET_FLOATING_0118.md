@@ -74,3 +74,7 @@ gradle --no-daemon --max-workers=2 --console=plain -p android -PcipherlinkPrevie
 ```
 
 위 Gradle 명령은 설치 가능한 서명 APK를 만들지 않는다. 실제 계정 비밀이나 서명키를 로그/채팅/저장소에 넣지 않는다.
+
+## 후속 정식 배포
+
+사용자가 별도 테스트 브랜치·초안 대신 main과 정식 릴리스에 적용하도록 지시했다. 최신 소스는 main에 반영하고, `Release CipherLink` 워크플로는 버전 태그에서 Windows 설치판·무설치판을 빌드해 검증 후 정식 게시한다. 새 Windows 전용 메타데이터 및 Android 이전 버전 링크 검사까지 PC 테스트는 292개다. Android의 기존 설치 계열과 서명은 유지하며, 0.11.8 설치용 APK는 기존 서명키 없이는 제공하지 않는다.

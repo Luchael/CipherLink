@@ -32,7 +32,7 @@ def safe_url(url,repository,kind):
     return url
 
 
-def render_release(metadata,version,repository=REPOSITORY):
+def render_release(metadata,version,repository=REPOSITORY,android_unavailable=False):
     if not re.fullmatch(r'\d+\.\d+\.\d+',version):raise ValueError('Invalid version')
     page=safe_url(metadata['url'],repository,'tag')
     assets={a['name']:a for a in metadata.get('assets',[]) if isinstance(a,dict) and a.get('size',0)>0}
@@ -48,7 +48,11 @@ def render_release(metadata,version,repository=REPOSITORY):
             url=safe_url(assets[name]['url'],repository,'download')
             lines.append(f'- [{label}]({url})');count+=1
     if not count:raise ValueError('No actual download files')
-    if 'CipherLink-Android.apk' not in assets:
+    if 'CipherLink-Android.apk' not in assets and android_unavailable:
+        lines+=['',f'Android {version} 설치용 업데이트 APK는 기존 서명키 복구 후 제공됩니다.',
+                '- [Android 기존 버전 0.11.7 다운로드](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Android.apk)',
+                '  기존 APK는 소유자 계정 로그인이 필요하며, 새 버전의 수정은 포함하지 않습니다.']
+    elif 'CipherLink-Android.apk' not in assets:
         # User explicitly requested a placeholder for their manual APK upload.
         base,tag=page.rsplit('/tag/',1)
         planned=safe_url(base+'/download/'+tag+'/CipherLink-Android.apk',repository,'download')
@@ -69,10 +73,11 @@ def update_readme(readme,block,version):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('version');parser.add_argument('--github',action='store_true')
+    parser.add_argument('--android-unavailable',action='store_true',help='Show the previous Android version instead of a reserved download URL')
     args=parser.parse_args()
     if not re.fullmatch(r'\d+\.\d+\.\d+',args.version):parser.error('Invalid version')
     metadata=json.loads(run(['gh','release','view','v'+args.version,'--repo',REPOSITORY,'--json','url,isDraft,assets']))
-    block=render_release(metadata,args.version)
+    block=render_release(metadata,args.version,android_unavailable=args.android_unavailable)
     if not args.github:
         path=ROOT/'README.md';path.write_text(update_readme(path.read_text(encoding='utf-8'),block,args.version),encoding='utf-8')
         print('README actual release links updated');return

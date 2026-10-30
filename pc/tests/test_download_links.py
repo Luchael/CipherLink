@@ -19,6 +19,14 @@ class ActualDownloadTests(unittest.TestCase):
         self.assertIn('[Android APK 다운로드 — 업로드 예정]',text)
         self.assertIn('직접 올리기 전까지는 다운로드되지',text)
         self.assertIn('/download/untagged-fixture/CipherLink-Android.apk',text)
+    def test_windows_release_keeps_android_explicitly_on_previous_version(self):
+        metadata=self.metadata();metadata['isDraft']=False
+        text=downloads.render_release(metadata,'0.11.8',android_unavailable=True)
+        self.assertIn('Android 기존 버전 0.11.7',text)
+        self.assertNotIn('/untagged-fixture/CipherLink-Android.apk',text)
+        self.assertNotIn('업로드 예정',text)
+        self.assertIn('기존 서명키',text)
+
     def test_old_release_completion_cannot_replace_newer_downloads(self):
         old=downloads.render_release(self.metadata(),'0.11.7')
         readme='intro\n'+old+'\nother content'
