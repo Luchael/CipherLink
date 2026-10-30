@@ -30,3 +30,7 @@ python -m unittest pc.tests.test_installer_shutdown -v
 ## 종료 설정만 바꾼 비교 검증
 
 [수정 후 비교 실행 41086593611](https://github.com/Luchael/CipherLink/actions/runs/41086593611)이 성공했다. 기존 0.11.9 EXE를 그대로 사용하고 설치 프로그램의 종료 설정만 force로 바꿔 검증했다. 숨김 창과 보이는 창의 두 종료 거부/파일 잠금 시나리오가 모두 통과했다. 일회성 진단 워크플로는 제거하고 같은 검사를 정상 Windows 릴리스 과정에 편입했다.
+
+## 0.11.10 정식 배포 검증
+
+[정식 배포 실행 41087112616](https://github.com/Luchael/CipherLink/actions/runs/41087112616)이 성공했다. 0.11.10 설치판의 설치·업데이트·제거와 숨김/보이는 종료 거부 프로세스의 종료 및 EXE 교체 검사를 모두 통과했다. Windows 설치판·무설치판·Android APK 다운로드는 HTTP 200을 확인했고, update.json의 공통 버전 0.11.10과 Android versionCode 38 및 README 상단 링크도 확인했다. 실제 사용자 기기의 권한·보안 환경에 따른 동작은 별도 확인 대상이다.

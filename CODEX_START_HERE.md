@@ -1,6 +1,6 @@
 # Codex: 이 파일부터 읽으세요
 
-> **현재 개발 상태:** PC·Android **0.11.10**. [Windows 업데이트 자동 닫기](docs/WINDOWS_UPDATE_SHUTDOWN.md)와 [자동 배포](docs/AUTOMATIC_RELEASES.md)를 먼저 읽으세요. 기존 설치판의 종료 거부 상황을 Windows에서 재현해 Restart Manager 강제 종료를 적용했고 검증 중입니다. PC 일반 검사 296개 통과, Windows 전용 종료 검사 2개는 실제 Windows CI에서 실행합니다. Android 정식 패키지 `com.gametodo.cipherlink`와 서명을 유지하며 versionCode는 38입니다. 사용자 데이터·기존 예약/창 닫기 정책을 유지합니다. 아래 구 기준선은 원본 ZIP 인수 당시 기록입니다.
+> **현재 개발 상태:** PC·Android **0.11.10**. [Windows 업데이트 자동 닫기](docs/WINDOWS_UPDATE_SHUTDOWN.md)와 [자동 배포](docs/AUTOMATIC_RELEASES.md)를 먼저 읽으세요. 기존 설치판의 종료 거부 상황을 Windows에서 재현해 Restart Manager 강제 종료를 적용했으며, 숨김/종료 거부 프로세스 종료와 EXE 교체 검사를 통과하고 정식 배포했습니다. PC 일반 검사 296개 통과, Windows 전용 종료 검사 2개는 실제 Windows CI에서 실행합니다. Android 정식 패키지 `com.gametodo.cipherlink`와 서명을 유지하며 versionCode는 38입니다. 사용자 데이터·기존 예약/창 닫기 정책을 유지합니다. 아래 구 기준선은 원본 ZIP 인수 당시 기록입니다.
 
 ## 프로젝트 미션
 
