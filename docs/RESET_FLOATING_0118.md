@@ -78,3 +78,7 @@ gradle --no-daemon --max-workers=2 --console=plain -p android -PcipherlinkPrevie
 ## 후속 정식 배포
 
 사용자가 별도 테스트 브랜치·초안 대신 main과 정식 릴리스에 적용하도록 지시했다. 최신 소스는 main에 반영하고, `Release CipherLink` 워크플로는 버전 태그에서 Windows 설치판·무설치판을 빌드해 검증 후 정식 게시한다. 새 Windows 전용 메타데이터 및 Android 이전 버전 링크 검사까지 PC 테스트는 292개다. Android의 기존 설치 계열과 서명은 유지하며, 0.11.8 설치용 APK는 기존 서명키 없이는 제공하지 않는다.
+
+### 정식 배포 확인 결과
+
+[Release CipherLink 실행 41059750779](https://github.com/Luchael/CipherLink/actions/runs/41059750779)이 성공했다. Windows EXE 빌드와 설치·업데이트·제거 검사를 통과한 뒤 [v0.11.8 정식 릴리스](https://github.com/Luchael/CipherLink/releases/tag/v0.11.8)에 설치판·무설치판·체크섬·Windows 전용 update.json을 게시했다. 릴리스와 두 실행 파일 다운로드 주소 모두 HTTP 200을 확인했다. update.json의 버전 0.11.8 및 Android 업데이트 미포함도 확인했다. main의 README 다운로드 링크는 CI가 실제 첨부파일에 맞춰 갱신했다. 사용자 PC의 실계정 동작 검증과 Android 기존 서명키 복구는 별도다.
