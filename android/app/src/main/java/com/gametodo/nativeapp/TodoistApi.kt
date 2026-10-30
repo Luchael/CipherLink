@@ -56,6 +56,8 @@ object HttpApi {
 }
 
 /** 공식 Todoist API v1 연동. Termux·로컬 브리지·PC 서버가 필요 없다. */
+class FloatingTaskRejected: IllegalStateException("Todoist가 입력을 승인하지 않았습니다")
+
 class TodoistApi(private val context: Context) {
     private val auth = TodoistAuth(context)
     fun tasks(): List<TodoTask> {
@@ -105,6 +107,53 @@ class TodoistApi(private val context: Context) {
         val pid=projects.single().getString("id")
         val sections=rows("sections").filter {it.optString("project_id")==pid && it.optString("name")==sectionName}
         return sections.singleOrNull()?.let {pid to it.getString("id")}
+    }
+
+    data class FloatingLocation(val projectId:String,val sectionId:String,val projectName:String,val sectionName:String) {
+        override fun toString() = "$projectName / $sectionName"
+    }
+
+    private fun collection(path:String):List<JSONObject> {
+        val result=mutableListOf<JSONObject>();var cursor:String?=null
+        repeat(50) {
+            val url="https://api.todoist.com/api/v1/$path?limit=200"+
+                (cursor?.let {"&cursor="+URLEncoder.encode(it,"UTF-8")} ?: "")
+            val page=JSONObject(HttpApi.request(url,token=auth.accessToken()))
+            val rows=page.optJSONArray("results") ?: error("Todoist 목록 응답을 확인할 수 없습니다")
+            for(i in 0 until rows.length()) result+=rows.getJSONObject(i)
+            cursor=page.optString("next_cursor").takeUnless {it.isBlank() || it=="null"}
+            if(cursor==null) return result
+        }
+        error("Todoist 목록 페이지 제한")
+    }
+
+    fun floatingLocations():List<FloatingLocation> {
+        val projects=collection("projects").associate {it.getString("id") to it.optString("name")}
+        return collection("sections").filterNot {OverlayTaskPolicy.isEventSectionName(it.optString("name"))}
+            .mapNotNull {section ->
+                val project=section.optString("project_id")
+                projects[project]?.let {FloatingLocation(project,section.getString("id"),it,section.optString("name"))}
+            }.sortedWith(compareBy({it.projectName},{it.sectionName}))
+    }
+
+    fun accountScope():String = MessageDigest.getInstance("SHA-256")
+        .digest(auth.accessToken().toByteArray(Charsets.UTF_8)).joinToString("") {"%02x".format(it.toInt() and 255)}
+
+    /** Explicit creation only. A Sync command UUID makes an uncertain HTTP retry idempotent. */
+    fun createFloatingTask(draft:FloatingTaskDraft) {
+        val payload=FloatingTaskRequest.command(draft)
+        val uuid=payload.getString("uuid")
+        val command=JSONArray().put(payload)
+        val conn=URL("https://api.todoist.com/api/v1/sync").openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod="POST";conn.doOutput=true;conn.connectTimeout=12000;conn.readTimeout=20000
+            conn.setRequestProperty("Authorization","Bearer "+auth.accessToken())
+            conn.setRequestProperty("Content-Type","application/x-www-form-urlencoded")
+            conn.outputStream.use {it.write(("commands="+URLEncoder.encode(command.toString(),"UTF-8")).toByteArray(Charsets.UTF_8))}
+            if(conn.responseCode !in 200..299) error("Todoist 추가 HTTP "+conn.responseCode)
+            val response=JSONObject(conn.inputStream.bufferedReader(Charsets.UTF_8).use {it.readText()})
+            if(response.optJSONObject("sync_status")?.optString(uuid)!="ok") throw FloatingTaskRejected()
+        } finally {conn.disconnect()}
     }
 
     /** 체크 버튼을 누르기 직전에 서버의 최신 작업 상태를 한 건만 다시 확인한다. */

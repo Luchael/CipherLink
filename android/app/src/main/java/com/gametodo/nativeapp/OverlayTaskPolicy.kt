@@ -28,7 +28,8 @@ object OverlayTaskPolicy {
     fun canDisplay(title: String, dueDate: String?, sectionId: String, excludedSectionIds: Set<String>,
                    gameKey: String, nowMillis: Long, dueString: String? = null,
                    isRecurring: Boolean = false,
-                   sectionKind: RecurrenceWindow.Kind = RecurrenceWindow.Kind.OTHER): Boolean {
+                   sectionKind: RecurrenceWindow.Kind = RecurrenceWindow.Kind.OTHER,
+                   resetMinutes: Int? = GamePeriods.defaultResetMinutes(gameKey)): Boolean {
         if (sectionId in excludedSectionIds) return false
         // 미완료 상태의 오래된 회차는 계속 표시한다. 반복 주기의 끝이 지났다고 숨기지 않는다.
         if (!RecurrenceWindow.isVisibleOutstanding(dueDate, nowMillis))
@@ -37,7 +38,7 @@ object OverlayTaskPolicy {
         // 해당 작업의 예정일(회차 시작일)이 오늘이면 초기화 시각 전에는 숨긴다.
         // 과거 예정일이면 지금이 새 회차의 초기화 전이어도 기존 미완료 작업을 표시한다.
         // 플로팅은 '수동 체크'이므로 자동 감지용 20분 캐시 유예를 적용하지 않는다.
-        if (!GamePeriods.startedForDate(gameKey, start, nowMillis, graceMinutes = 0)) return false
+        if (!GamePeriods.startedForDate(gameKey, start, nowMillis, graceMinutes = 0,resetMinutes=resetMinutes)) return false
         return true
     }
 }

@@ -209,6 +209,12 @@ class MainActivity : Activity() {
         }
         action("게임 앱 연결 · 변경",true) {pickInstalledGame()}
         addCard("새 게임도 연결할 수 있어요","Todoist에서 같은 게임에 같은 라벨을 붙인 뒤 추가하세요. 연결한 게임 앱의 아이콘이 위 목록에 표시됩니다.","Todoist 라벨로 새 게임 추가") {discoverGameLabels()}
+        rowTitle("게임 초기화 시각")
+        addCard("한국 시간 기준","자동 완료와 플로팅에 같은 시각을 적용합니다. 시각 미설정 게임은 오늘 할 일을 표시하지 않으므로 먼저 설정해 주세요.")
+        GameRules.all(this).sortedBy {it.name}.forEach {game ->
+            val value=game.resetMinutes?.let {"%02d:%02d".format(java.util.Locale.ROOT,it/60,it%60)} ?: "설정 필요"
+            addCard(game.name,"초기화 $value · KST","시각 변경") {ResetTimeDialog.show(this,game) {render();push("초기화 시각을 저장했어요")}}
+        }
         rowTitle("자동 동기화")
         toggle("주기적으로 확인","PC가 꺼져 있어도 이 휴대폰에서 확인합니다.",SyncWorker.isEnabled(this)) {SyncWorker.setEnabled(this,it)}
         val box=UiKit.column(this);box.addView(label("확인 간격",16f,bold=true))
@@ -321,7 +327,11 @@ class MainActivity : Activity() {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                 if(selected>=0) {
                     GameRules.addLabelGame(this,labels[selected]);dialog.dismiss();render()
-                    if(then!=null) then() else pickInstalledGame()
+                    GameRules.all(this).firstOrNull {it.label==labels[selected]}?.let {newGame ->
+                        ResetTimeDialog.show(this,newGame) {
+                            render();if(then!=null) then() else pickInstalledGame()
+                        }
+                    }
                 }
             }
         }
@@ -408,7 +418,7 @@ class MainActivity : Activity() {
                 },LinearLayout.LayoutParams(-1,dp(7)))
                 val period=if(!g.metric.startsWith("umbral_") && g.metric !in setOf("daily","weekly","weekly_task","rogue_weekly","weekly_boss_used","bounty_tasks","bounty_points","weekly_mission")) {
                     if(g.periodEndMs!=null && System.currentTimeMillis()>=g.periodEndMs) " · 기간 종료"
-                    else if(EndgameRecords.currentPeriod(g,System.currentTimeMillis())) " · 현재 회차" else " · 회차 확인 필요"
+                    else if(EndgameRecords.currentPeriod(g,System.currentTimeMillis(),GameRules.resetMinutes(this,g.game))) " · 현재 회차" else " · 회차 확인 필요"
                 } else ""
                 card.addView(label(ProgressPresentation.state(g.current,g.maximum)+period,12f,UiKit.MUTED),UiKit.margin(this,5,4))
                 }

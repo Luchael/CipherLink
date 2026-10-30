@@ -28,46 +28,56 @@ object GamePeriods {
     private val kst = ZoneId.of("Asia/Seoul")
     fun nowKst(nowMillis: Long): ZonedDateTime = Instant.ofEpochMilli(nowMillis).atZone(kst)
 
-    /**
-     * 오전 00:00~게임 초기화 전 사이에는 전날 점수를 당일 Todoist에 잘못 적용할 위험이 크다.
-     * 사용자 요청에 따라 초기화 전에는 이전 회차도 자동 완료하지 않는다.
-     * 서버 초기화 후 20분은 캐시 반영 지연을 피하기 위한 유예 시간이다.
-     */
-    fun currentCycle(game: String, kind: String, nowMillis: Long, graceMinutes: Long = 20): String? {
-        val resetHour = when (game) {
-            "genshin", "hsr", "zzz", "endfield" -> 5
-            "limbus" -> 6
-            // 검증되지 않은 게임의 초기화 시각은 절대 추정하지 않는다.
-            else -> return null
-        }
-        val now = nowKst(nowMillis)
-        val todayReset = now.toLocalDate().atTime(LocalTime.of(resetHour, 0)).atZone(kst)
-        return when (kind) {
-            "daily" -> if (now.isBefore(todayReset.plusMinutes(graceMinutes))) null
-                else todayReset.toLocalDate().toString()
+    /** KST minutes after midnight. Unknown games require an explicit user setting. */
+    fun defaultResetMinutes(game: String): Int? = when(game) {
+        "genshin", "hsr", "zzz", "wuthering", "endfield" -> 5 * 60
+        "limbus" -> 6 * 60
+        else -> null
+    }
+
+    fun parseResetTime(raw: String): Int? {
+        if (!Regex("[0-9]{2}:[0-9]{2}").matches(raw)) return null
+        val hour=raw.take(2).toInt(); val minute=raw.takeLast(2).toInt()
+        return if(hour in 0..23 && minute in 0..59) hour*60+minute else null
+    }
+
+    fun currentCycle(game: String, kind: String, nowMillis: Long, graceMinutes: Long = 20,
+                     resetMinutes: Int? = defaultResetMinutes(game)): String? {
+        val minute=resetMinutes?.takeIf {it in 0..1439} ?: return null
+        val now=nowKst(nowMillis)
+        val todayReset=now.toLocalDate().atStartOfDay(kst).plusMinutes(minute.toLong())
+        // All automatic paths obey today's reset, including weekly/seasonal goals.
+        if(now.isBefore(todayReset.plusMinutes(graceMinutes))) return null
+        return when(kind) {
+            "daily" -> todayReset.toLocalDate().toString()
             "weekly" -> {
-                val weekDay = if (game == "limbus") DayOfWeek.THURSDAY else DayOfWeek.MONDAY
-                val startDay = now.toLocalDate().with(TemporalAdjusters.previousOrSame(weekDay))
-                // 주간 초기화일의 초기화 전에는 기존 주간 정보를 사용하지 않는다.
-                val cycleStart = startDay.atTime(resetHour, 0).atZone(kst)
-                if (now.isBefore(cycleStart.plusMinutes(graceMinutes))) null else "weekly:${startDay}"
+                val day=if(game=="limbus") DayOfWeek.THURSDAY else DayOfWeek.MONDAY
+                val start=now.toLocalDate().with(TemporalAdjusters.previousOrSame(day))
+                "weekly:$start"
             }
             else -> null
         }
     }
-    /** 시작일에만 게임 일일 초기화 시각을 확인. 중간 날짜는 이미 회차가 열려 있다. */
+
+    /** Old outstanding tasks stay visible; today's task opens at the game's reset. */
     fun startedForDate(game: String, start: LocalDate, nowMillis: Long,
-                       graceMinutes: Long = 20): Boolean {
-        val now = nowKst(nowMillis)
-        if (start.isAfter(now.toLocalDate())) return false
-        if (start.isBefore(now.toLocalDate())) return true
-        val reset = when (game) {
-            "genshin", "hsr", "zzz", "endfield" -> 5
-            "limbus" -> 6
-            // 확인되지 않은 게임은 초기화 시각을 추측해서 숨기지 않는다.
-            else -> return true
-        }
-        return !now.isBefore(start.atTime(reset, 0).atZone(kst).plusMinutes(graceMinutes))
+                       graceMinutes: Long = 20,
+                       resetMinutes: Int? = defaultResetMinutes(game)): Boolean {
+        val now=nowKst(nowMillis)
+        if(start.isAfter(now.toLocalDate())) return false
+        if(start.isBefore(now.toLocalDate())) return true
+        val minute=resetMinutes?.takeIf {it in 0..1439} ?: return false
+        return !now.isBefore(start.atStartOfDay(kst).plusMinutes(minute.toLong()+graceMinutes))
+    }
+
+    /** A still-active OLD API season cannot close a NEW Todoist recurrence. */
+    fun seasonMatchesTask(game: String, due: String?, startMs: Long?, endMs: Long?,
+                          nowMillis: Long, resetMinutes: Int? = defaultResetMinutes(game)): Boolean {
+        val date=RecurrenceWindow.dateKst(due) ?: return false
+        val minute=resetMinutes?.takeIf {it in 0..1439} ?: return false
+        if(startMs==null || endMs==null || startMs>=endMs || nowMillis<startMs || nowMillis>=endMs) return false
+        val opens=date.atStartOfDay(kst).plusMinutes(minute.toLong()).toInstant().toEpochMilli()
+        return startMs>=opens && currentCycle(game,"daily",nowMillis,resetMinutes=minute)!=null
     }
 
     fun dueEligible(due: String?, nowMillis: Long): Boolean {

@@ -13,7 +13,7 @@ import logging
 import time
 
 from .account_sources import read_hoyolab, read_wuthering, read_endfield, read_arknights
-from .cycles import KST, before_today_reset, current_period, due_is_eligible, due_date_kst
+from .cycles import KST, before_today_reset, current_period, due_is_eligible, due_date_kst, season_matches_task
 from .games import task_game
 from .task_rules import configured_bindings, gauge_for
 from .lookup_policy import enabled as lookup_enabled
@@ -156,6 +156,9 @@ def run_account_check(settings, todoist=None, store=None, read_only=False, now=N
                                 desc["action"] = "Todoist 다음 회차 또는 날짜 미설정: 보류"
                             elif binding.kind=="interval" and (fixed is None or _done_before(store,key)):
                                 desc["action"]="현재 고정 주기·API 회차 확인 불가 또는 이미 완료: 보류"
+                            elif binding.kind == "endgame" and not season_matches_task(
+                                    game, matching[0], status.metric_windows.get(binding.metric), local, hours, times):
+                                desc["action"] = "API 기록과 Todoist 현재 회차 불일치: 보류"
                             elif binding.kind == "weekly" and due_date_kst(matching[0]) < period.starts_at.date():
                                 desc["action"] = "이전 주간 회차 예정일: 보류"
                             else:

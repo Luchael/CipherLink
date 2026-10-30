@@ -76,7 +76,7 @@ fun main() {
         check(display(manual, listOf(manual)) != null)
     }
     val colorsweeper = task("colorsweeper", "[색지뢰] 일퀘", "2026-10-28", section = "daily")
-    check(display(colorsweeper, listOf(colorsweeper), "colorsweeper") != null)
+    check(display(colorsweeper, listOf(colorsweeper), "colorsweeper") == null) // configure its reset before today opens
     check(display(colorsweeper.copy(dueDate = "2026-10-29"), listOf(colorsweeper), "colorsweeper") == null)
     println("하위 작업 소속·예정일·이벤트 제외·현재 회차 재확인 테스트 통과")
 }

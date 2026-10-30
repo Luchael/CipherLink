@@ -12,5 +12,9 @@ fun main() {
     // 회전된 좁은 화면에서도 음수 좌표가 나오지 않아야 한다.
     val rotated = BubbleGeometry.clampBubble(300,400,500,320,168,20,30)
     check(rotated.x in 0..332 && rotated.y in 20..122)
+    val cutout=BubbleGeometry.clampBubble(-20,1000,900,480,56,20,30,70,15)
+    check(cutout.x==70 && cutout.y==394)
+    val tiny=BubbleGeometry.clampBubble(400,400,40,40,56,24,40)
+    check(tiny.x==0 && tiny.y==0)
     println("원형 버튼 이동/저장 좌표/패널 화면 내 배치 테스트 통과")
 }

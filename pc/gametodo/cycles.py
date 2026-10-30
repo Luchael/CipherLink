@@ -137,3 +137,16 @@ def due_date_kst(task: dict) -> date | None:
 def due_is_eligible(task: dict, now: datetime) -> bool:
     due = due_date_kst(task)
     return due is not None and due <= now.astimezone(KST).date()
+
+
+def season_matches_task(game, task, window, now, hours=None, times=None):
+    """Reject old API seasons even when their end still lies in the future."""
+    due = due_date_kst(task)
+    reset = reset_time(game, hours, times)
+    if due is None or reset is None or not isinstance(window, (tuple, list)) or len(window) != 2:
+        return False
+    start, end = window
+    if type(start) is not int or type(end) is not int or not 1_500_000_000 <= start < end <= 5_000_000_000:
+        return False
+    boundary = datetime.combine(due, reset, tzinfo=KST).timestamp()
+    return boundary <= start <= now.timestamp() < end

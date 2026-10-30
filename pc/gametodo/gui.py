@@ -253,6 +253,40 @@ class Desktop:
         self._page_intro(settings_page,"각 게임의 계정 API 자동 조회를 독립적으로 관리합니다.")
         from . import __version__
         self._card(settings_page,f"사이퍼링크 {__version__}","업데이트는 앱을 종료한 뒤 새 EXE로 교체하세요. 설정과 데이터 폴더는 유지합니다.")
+        reset_card=self._card(settings_page,"게임 초기화 시각 · KST","자동 완료는 초기화 시각과 실제 콘텐츠 회차를 함께 확인합니다. 변경은 다음 조회부터 적용됩니다.")
+        from .games import GAMES
+        from .cycles import reset_time
+        reset_game=tk.StringVar(value=next(iter(GAMES)))
+        hour=tk.StringVar(value="05");minute=tk.StringVar(value="00")
+        names={f"{profile.name} ({key})":key for key,profile in GAMES.items()}
+        game_choice=ttk.Combobox(reset_card,values=list(names),state="readonly",width=30)
+        game_choice.current(0);game_choice.pack(anchor="w",pady=6)
+        row=tk.Frame(reset_card,bg=COLOR_CARD);row.pack(anchor="w")
+        ttk.Spinbox(row,from_=0,to=23,format="%02.0f",width=4,textvariable=hour,wrap=True).pack(side="left")
+        self._label(row,":",12).pack(side="left")
+        ttk.Spinbox(row,from_=0,to=59,format="%02.0f",width=4,textvariable=minute,wrap=True).pack(side="left")
+        reset_status=tk.StringVar()
+        # Keep the status visibly packed instead of only sending an activity log.
+        tk.Label(reset_card,textvariable=reset_status,bg=COLOR_CARD,fg=COLOR_MUTED).pack(anchor="w",pady=5)
+        def selected_reset(_event=None):
+            reset_game.set(names[game_choice.get()])
+            latest=load_settings(str(self.cfg)).get("account_data") or {}
+            current=reset_time(reset_game.get(),latest.get("reset_hours_kst"),latest.get("reset_times_kst"))
+            hour.set(f"{current.hour:02}" if current else "05");minute.set(f"{current.minute:02}" if current else "00")
+            reset_status.set(f"현재 {current:%H:%M} KST" if current else "미설정 · 해당 서버의 시각을 확인한 뒤 저장해 주세요")
+        game_choice.bind("<<ComboboxSelected>>",selected_reset);selected_reset()
+        def save_reset():
+            try:
+                from .cycles import reset_time as validate_time
+                value=f"{int(hour.get()):02}:{int(minute.get()):02}"
+                if validate_time(reset_game.get(),times={reset_game.get():value}) is None:raise ValueError()
+                from .account_setup import write_settings
+                def change(config):config.setdefault("account_data",{}).setdefault("reset_times_kst",{})[reset_game.get()]=value
+                write_settings(self.cfg,change)
+                reset_status.set(f"저장됨 · {value} KST · 다음 조회부터 적용")
+            except (ValueError,tk.TclError):reset_status.set("00:00~23:59 사이의 시각을 입력해 주세요")
+            except OSError:reset_status.set("저장하지 못했어요. 설정 파일의 쓰기 권한을 확인해 주세요")
+        self._button(row,"저장",save_reset,True).pack(side="left",padx=12)
         card=self._card(settings_page,"게임별 계정 조회","ON/OFF는 다음 동기화부터 적용됩니다.")
         from .lookup_policy import ALL as lookup_games, enabled as lookup_enabled
         live_cfg=load_settings(str(self.cfg))

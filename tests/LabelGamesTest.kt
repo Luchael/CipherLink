@@ -16,7 +16,7 @@ fun main() {
     val parent=TodoTask("p","할 일",listOf(label),"","2026-10-28","daily","project")
     val child=parent.copy(id="c",title="하위 할 일",labels=emptyList(),dueDate=null,parentId="p")
     val membership:(TodoTask)->Set<String> = {t->games.filter {GameRules.matchingTask(it,t.title,t.labels)}.map {it.key}.toSet()}
-    fun shown(p:TodoTask=parent) = OverlayTaskTree.displayTask(child,listOf(p,child).associateBy {it.id},key,now,setOf("event"),emptyMap(),membership)
+    fun shown(p:TodoTask=parent) = OverlayTaskTree.displayTask(child,listOf(p,child).associateBy {it.id},key,now,setOf("event"),emptyMap(),membership,resetMinutes=300)
     check(shown()?.dueDate=="2026-10-28")
     check(shown(parent.copy(sectionId="event"))==null)
     check(shown(parent.copy(labels=listOf(label,"원신")))==null)

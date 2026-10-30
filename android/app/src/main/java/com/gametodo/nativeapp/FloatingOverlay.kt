@@ -11,6 +11,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.WindowManager
+import android.view.WindowInsets
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.Button
@@ -46,6 +47,7 @@ class FloatingOverlay(private val context: Context) {
     private var panelParams: WindowManager.LayoutParams? = null
     private var holder: LinearLayout? = null
     private var sequence = 0
+    private var taskComposer: FloatingTaskComposer? = null
 
     private fun bounds(): Pair<Int,Int> {
         val rectangle = wm.currentWindowMetrics.bounds
@@ -56,7 +58,8 @@ class FloatingOverlay(private val context: Context) {
         // 설정은 px로 보관한다. 휴대폰 방향·해상도가 변경되면 다시 화면 안으로 제한.
         val x = prefs.getInt("bubble_x", w - bubbleSize - dp(16))
         val y = prefs.getInt("bubble_y", dp(100))
-        val point = BubbleGeometry.clampBubble(x, y, w, h, bubbleSize, dp(24), dp(40))
+        val safe=wm.currentWindowMetrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+        val point = BubbleGeometry.clampBubble(x,y,w,h,bubbleSize,safe.top,safe.bottom,safe.left,safe.right)
         return point.x to point.y
     }
     private fun layout(x: Int,y: Int,width: Int,height: Int): WindowManager.LayoutParams =
@@ -66,6 +69,7 @@ class FloatingOverlay(private val context: Context) {
             PixelFormat.TRANSLUCENT).apply {
                 gravity = Gravity.TOP or Gravity.START
                 this.x = x; this.y = y
+                setFitInsetsTypes(0)
             }
 
     fun setGame(next: GameRules.Game?, activePackage: String? = null) {
@@ -124,6 +128,12 @@ class FloatingOverlay(private val context: Context) {
                     moving = false
                     true
                 }
+                MotionEvent.ACTION_POINTER_DOWN, MotionEvent.ACTION_POINTER_UP -> {
+                    val next=if(e.actionMasked==MotionEvent.ACTION_POINTER_UP && e.actionIndex==0 && e.pointerCount>1) 1 else 0
+                    initialRawX=e.getRawX(next);initialRawY=e.getRawY(next)
+                    bubbleParams?.let {startX=it.x;startY=it.y}
+                    true
+                }
                 MotionEvent.ACTION_MOVE -> {
                     val p = bubbleParams ?: return@setOnTouchListener true
                     val dx = e.rawX - initialRawX
@@ -131,17 +141,17 @@ class FloatingOverlay(private val context: Context) {
                     if (!moving && (abs(dx) > threshold || abs(dy) > threshold)) moving = true
                     if (moving) {
                         val (w,h) = bounds()
-                        val point = BubbleGeometry.clampBubble(startX + dx.roundToInt(),
-                            startY + dy.roundToInt(), w, h, bubbleSize, dp(24), dp(40))
+                        val safe=wm.currentWindowMetrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+                        val point = BubbleGeometry.clampBubble(startX+dx.roundToInt(),startY+dy.roundToInt(),
+                            w,h,bubbleSize,safe.top,safe.bottom,safe.left,safe.right)
                         p.x=point.x; p.y=point.y
-                        try { wm.updateViewLayout(v,p) } catch (_: Exception) {}
-                        // 열린 목록은 드래그 위치를 따라 이동.
-                        positionPanel()
+                        scheduleDragFrame(v)
                     }
                     true
                 }
                 MotionEvent.ACTION_UP -> {
                     if (moving) {
+                        flushDragFrame(v)
                         bubbleParams?.let { prefs.edit().putInt("bubble_x",it.x)
                             .putInt("bubble_y",it.y).apply() }
                     } else v.performClick()
@@ -149,6 +159,7 @@ class FloatingOverlay(private val context: Context) {
                     true
                 }
                 MotionEvent.ACTION_CANCEL -> {
+                    flushDragFrame(v)
                     bubbleParams?.let { prefs.edit().putInt("bubble_x",it.x)
                         .putInt("bubble_y",it.y).apply() }
                     moving = false
@@ -159,12 +170,46 @@ class FloatingOverlay(private val context: Context) {
         }
     }
 
+    private var framePending=false
+    private val dragFrame=Runnable {
+        framePending=false
+        val view=bubbleView
+        val params=bubbleParams
+        if(view!=null && params!=null) {
+            try {wm.updateViewLayout(view,params)} catch(_:Exception) {}
+            positionPanel()
+        }
+    }
+    private fun scheduleDragFrame(view:View) {
+        if(!framePending) {framePending=true;view.postOnAnimation(dragFrame)}
+    }
+    private fun flushDragFrame(view:View) {
+        view.removeCallbacks(dragFrame);dragFrame.run()
+    }
+
+    fun onBoundsChanged() {
+        val params=bubbleParams ?: return
+        val (width,height)=bounds()
+        val safe=wm.currentWindowMetrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+        val point=BubbleGeometry.clampBubble(params.x,params.y,width,height,bubbleSize,
+            safe.top,safe.bottom,safe.left,safe.right)
+        params.x=point.x;params.y=point.y
+        panelView?.let {panel ->
+            val scroll=panel.getChildAt(1)
+            scroll.layoutParams=scroll.layoutParams.apply {this.height=dp(320).coerceAtMost(((bounds().second-safe.top-safe.bottom)-dp(100)).coerceAtLeast(dp(80)))}
+            panelParams?.width=dp(320).coerceAtMost((width-safe.left-safe.right-dp(20)).coerceAtLeast(dp(180)))
+        }
+        bubbleView?.let {flushDragFrame(it)}
+        prefs.edit().putInt("bubble_x",point.x).putInt("bubble_y",point.y).apply()
+    }
+
     private fun positionPanel() {
         val params = panelParams ?: return
         val p = bubbleParams ?: return
         val (w,h) = bounds()
+        val safe=wm.currentWindowMetrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
         val point = BubbleGeometry.panelPoint(p.x,p.y,bubbleSize,
-            params.width,dp(390),w,h,dp(8),dp(24),dp(40))
+            params.width,panelView?.measuredHeight?.takeIf {it>0} ?: dp(390),w,h,dp(8),safe.top,safe.bottom,safe.left,safe.right)
         params.x = point.x
         params.y = point.y
         panelView?.let { try { wm.updateViewLayout(it,params) } catch (_: Exception) {} }
@@ -193,6 +238,15 @@ class FloatingOverlay(private val context: Context) {
             setOnClickListener { refresh(target) }
         }, LinearLayout.LayoutParams(dp(58),dp(48)))
         header.addView(Button(context).apply {
+            text="+";contentDescription="할 일 추가";isAllCaps=false
+            setOnClickListener {
+                taskComposer?.dismiss()
+                taskComposer=FloatingTaskComposer(context,target,{job -> io.execute(job)}) {
+                    if(expanded && game?.key==target.key) refresh(target)
+                }.also {it.show()}
+            }
+        },LinearLayout.LayoutParams(dp(48),dp(48)))
+        header.addView(Button(context).apply {
             text="×"; contentDescription="접기"; isAllCaps=false
             setOnClickListener { hidePanel() }
         }, LinearLayout.LayoutParams(dp(52),dp(48)))
@@ -200,7 +254,9 @@ class FloatingOverlay(private val context: Context) {
         val scroll = ScrollView(context)
         val list = LinearLayout(context).apply { orientation=LinearLayout.VERTICAL }
         scroll.addView(list)
-        panel.addView(scroll, LinearLayout.LayoutParams(-1,dp(320)))
+        val safe=wm.currentWindowMetrics.windowInsets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+        val listHeight=dp(320).coerceAtMost((bounds().second-safe.top-safe.bottom-dp(100)).coerceAtLeast(dp(80)))
+        panel.addView(scroll, LinearLayout.LayoutParams(-1,listHeight))
         val screenWidth = bounds().first
         val params = layout(0,0,(dp(320)).coerceAtMost((screenWidth-dp(20)).coerceAtLeast(dp(180))),
             WindowManager.LayoutParams.WRAP_CONTENT)
@@ -248,13 +304,17 @@ class FloatingOverlay(private val context: Context) {
                 }
                 val tasks = allTasks.mapNotNull { item ->
                     OverlayTaskTree.displayTask(item, tasksById, target.key, nowMillis,
-                        sectionIndex.excludedIds, sectionIndex.kinds, gameKeys)
+                        sectionIndex.excludedIds, sectionIndex.kinds, gameKeys,GameRules.resetMinutes(context,target.key))
                 }
                 main.post {
                     if (id != sequence || !expanded || game?.key != target.key) return@post
                     val list = holder ?: return@post
                     list.removeAllViews()
-                    if (tasks.isEmpty()) { message("지금 체크할 수 있는 게임 할 일이 없습니다."); return@post }
+                    if (tasks.isEmpty()) {
+                        message(if(GameRules.resetMinutes(context,target.key)==null) "앱 설정에서 이 게임의 초기화 시각을 지정해 주세요."
+                            else "지금 체크할 수 있는 게임 할 일이 없습니다.")
+                        return@post
+                    }
                     tasks.forEach { item ->
                         val itemRow = LinearLayout(context).apply { orientation=LinearLayout.HORIZONTAL }
                         itemRow.addView(TextView(context).apply {
@@ -277,7 +337,7 @@ class FloatingOverlay(private val context: Context) {
                                         if (latest != null && liveTree.containsKey(latest.id)) {
                                             liveTree[latest.id] = latest
                                             val current = OverlayTaskTree.displayTask(latest, liveTree,
-                                                target.key, now, sections.excludedIds, sections.kinds, gameKeys)
+                                                target.key, now, sections.excludedIds, sections.kinds, gameKeys,GameRules.resetMinutes(context,target.key))
                                             if (current != null && OverlayTaskTree.sameDisplayedOccurrence(item, current)) {
                                                 liveApi.complete(item.id)
                                             }
@@ -305,6 +365,8 @@ class FloatingOverlay(private val context: Context) {
     }
 
     private fun remove() {
+        taskComposer?.dismiss();taskComposer=null
+        bubbleView?.removeCallbacks(dragFrame);framePending=false
         hidePanel()
         bubbleView?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         bubbleView=null; bubbleParams=null; game=null; gamePackage=null

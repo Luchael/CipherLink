@@ -10,9 +10,29 @@ object GameRules {
     @Volatile private var cached: List<Game>? = null
 
     data class Game(val key: String, val name: String, val prefix: String,
-                    val label: String, val resetHour: Int?, val packages: List<String>)
+                    val label: String, val resetHour: Int?, val packages: List<String>, val resetMinute: Int = 0) {
+        val resetMinutes: Int? get() = resetHour?.let {it*60+resetMinute}
+    }
 
-    fun all(context: Context): List<Game> = builtIn(context) + labelGames(context)
+    fun all(context: Context): List<Game> {
+        val prefs=context.getSharedPreferences("gametodo",Context.MODE_PRIVATE)
+        return (builtIn(context)+labelGames(context)).map {game ->
+            val key="reset_time:${game.key}"
+            val minute=if(prefs.contains(key)) GamePeriods.parseResetTime(prefs.getString(key,"").orEmpty())
+                else game.resetMinutes
+            game.copy(resetHour=minute?.div(60),resetMinute=minute?.rem(60) ?: 0)
+        }
+    }
+
+    fun resetMinutes(context: Context, game: String): Int? = all(context).firstOrNull {it.key==game}?.resetMinutes
+
+    fun setResetTime(context: Context, game: String, raw: String?) {
+        require((builtIn(context)+labelGames(context)).any {it.key==game})
+        require(raw==null || GamePeriods.parseResetTime(raw)!=null)
+        context.getSharedPreferences("gametodo",Context.MODE_PRIVATE).edit().apply {
+            if(raw==null) remove("reset_time:$game") else putString("reset_time:$game",raw)
+        }.apply()
+    }
 
     private fun builtIn(context: Context): List<Game> {
         cached?.let { return it }

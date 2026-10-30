@@ -51,8 +51,8 @@ class AccountSync(private val context: Context) {
                     GameRules.all(context).any { game -> game.key == gauge.game && GameRules.matchingTask(game,it.title,it.labels) } }
                 val cause = when {
                     !gauge.filled -> "점수 미달"
-                    GamePeriods.currentCycle(gauge.game,binding.kind,nowMillis)==null && binding.kind!="endgame" -> "게임 초기화 전/직후"
-                    binding.kind=="endgame" && !EndgameRecords.currentPeriod(gauge,nowMillis) -> "현재 시즌 확인 불가"
+                    GamePeriods.currentCycle(gauge.game,binding.kind,nowMillis,resetMinutes=GameRules.resetMinutes(context,gauge.game))==null && binding.kind!="endgame" -> "게임 초기화 전/직후"
+                    binding.kind=="endgame" && !EndgameRecords.currentPeriod(gauge,nowMillis,GameRules.resetMinutes(context,gauge.game)) -> "현재 시즌 확인 불가"
                     matching.isEmpty() -> "Todoist 일치하는 이름/라벨 없음"
                     matching.size>1 -> "같은 Todoist 작업 여러 개"
                     !RecurrenceWindow.isCurrentOccurrence(
@@ -99,9 +99,8 @@ class AccountSync(private val context: Context) {
     /** 서버 초기화 전/직후, 미래 Todoist 예정일, 중복 회차는 완료 처리하지 않는다. */
     fun runOnce(todoist: TodoistApi, nowMillis: Long = System.currentTimeMillis()): List<String> {
         val results = mutableListOf<String>()
-        // 주의: 일일/주간 초기화는 각 게임의 currentCycle()에서 판정한다.
-        // 전역 오전 5시 차단을 두면 나선·혼돈 등의 독립 시즌 종료 처리까지 막는다.
-        // 따라서 엔드 콘텐츠는 API가 명시한 현재 시즌/기간 기준으로 별도 판단한다.
+        // Every automatic path uses the configured KST reset AND the API period.
+        // API "current" alone may still mean yesterday's completed season before reset.
 
         data class Candidate(val gauge: AccountGauge, val rule: Rule, val identity: String)
         val ready = mutableListOf<Candidate>()
@@ -109,9 +108,9 @@ class AccountSync(private val context: Context) {
             if (!g.filled) continue
             for (binding in rule(g.game).filter { it.metric == g.metric }) {
                 val id = when (binding.kind) {
-                    "daily", "weekly" -> GamePeriods.currentCycle(g.game,binding.kind,nowMillis)
-                    "endgame" -> g.periodKey?.takeIf { EndgameRecords.currentPeriod(g,nowMillis) }
-                    "interval" -> g.periodKey?.takeIf {GamePeriods.currentCycle(g.game,"daily",nowMillis)!=null}
+                    "daily", "weekly" -> GamePeriods.currentCycle(g.game,binding.kind,nowMillis,resetMinutes=GameRules.resetMinutes(context,g.game))
+                    "endgame" -> g.periodKey?.takeIf { EndgameRecords.currentPeriod(g,nowMillis,GameRules.resetMinutes(context,g.game)) }
+                    "interval" -> g.periodKey?.takeIf {GamePeriods.currentCycle(g.game,"daily",nowMillis,resetMinutes=GameRules.resetMinutes(context,g.game))!=null}
                     else -> null
                 } ?: continue
                 ready.add(Candidate(g,binding,"${g.game}:${g.account}:${g.metric}:$id"))
@@ -139,11 +138,13 @@ class AccountSync(private val context: Context) {
             if(rule.kind=="interval" && fixed==null) continue
             if(rule.kind!="interval" && !RecurrenceWindow.isCurrentOccurrence(task.dueDate, task.dueString,
                     task.isRecurring, RecurrenceWindow.Kind.OTHER, nowMillis)) continue
+            if(rule.kind=="endgame" && !GamePeriods.seasonMatchesTask(g.game,task.dueDate,
+                    g.periodStartMs,g.periodEndMs,nowMillis,gameRule.resetMinutes)) continue
             val doneId = "closed:$key:${task.id}"
             if (prefs.getBoolean(doneId,false)) continue
             val occurrence = when(rule.kind) {
                 "interval" -> fixed ?: continue
-                "endgame" -> "endgame:" + (g.periodKey ?: continue)
+                "endgame" -> "rotation:until:" + ((g.periodEndMs ?: continue)/1000)
                 "weekly" -> key.substringAfter(":${g.metric}:")
                 else -> key.substringAfterLast(':')
             }

@@ -49,9 +49,9 @@ fun main() {
     check(!show("2026-10-28","every day",Kind.DAILY,"2026-10-28",hour=2))
     check(show("2026-10-28","every day",Kind.DAILY,"2026-10-28",hour=5))
 
-    // 명일방주처럼 초기화 시간이 아직 검증되지 않았으면 날짜만 검사한다.
-    check(show("2026-10-28","every day",Kind.DAILY,"2026-10-28",game="arknights",hour=1))
-    check(GamePeriods.currentCycle("hsr","weekly",whenKst("2026-10-28",2)) == "weekly:2026-10-26")
+    // 초기화 시각 미설정 게임은 오늘 회차를 보류하고 사용자 설정을 요구한다.
+    check(!show("2026-10-28","every day",Kind.DAILY,"2026-10-28",game="arknights",hour=1))
+    check(GamePeriods.currentCycle("hsr","weekly",whenKst("2026-10-28",2)) == null)
 
     check(!OverlayTaskPolicy.canDisplay("[원신] 가챠","2026-10-26","event",setOf("event"),
         "genshin",whenKst("2026-10-28"),null,true,Kind.INTERVAL))

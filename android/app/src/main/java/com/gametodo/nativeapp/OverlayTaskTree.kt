@@ -14,7 +14,8 @@ object OverlayTaskTree {
     fun displayTask(task: TodoTask, tasksById: Map<String, TodoTask>, gameKey: String,
                     nowMillis: Long, excludedSectionIds: Set<String>,
                     sectionKinds: Map<String, RecurrenceWindow.Kind>,
-                    gameKeys: (TodoTask) -> Set<String>): TodoTask? {
+                    gameKeys: (TodoTask) -> Set<String>,
+                    resetMinutes: Int? = GamePeriods.defaultResetMinutes(gameKey)): TodoTask? {
         val chain = mutableListOf<TodoTask>()
         val visited = mutableSetOf<String>()
         var cursor: TodoTask? = task
@@ -40,7 +41,7 @@ object OverlayTaskTree {
         return displayed.takeIf {
             OverlayTaskPolicy.canDisplay(it.title, it.dueDate, it.sectionId,
                 excludedSectionIds, gameKey, nowMillis, it.dueString, it.isRecurring,
-                sectionKinds[section] ?: RecurrenceWindow.Kind.OTHER)
+                sectionKinds[section] ?: RecurrenceWindow.Kind.OTHER,resetMinutes)
         }
     }
 

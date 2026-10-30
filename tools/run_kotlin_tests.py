@@ -16,12 +16,14 @@ if not kotlinc or not java: raise SystemExit('Install JDK 17 and Kotlin 2.0.21, 
 android_jar=Path(os.environ.get('ANDROID_HOME', os.environ.get('ANDROID_SDK_ROOT','')))/'platforms/android-35/android.jar'
 policy=['SharedPeriods.kt','RecurrenceWindow.kt','OverlayTaskPolicy.kt','OverlayEventPolicy.kt']
 plans=[('BubbleGeometryTest',['BubbleGeometry.kt'],[]),('OverlayEventPolicyTest',['OverlayEventPolicy.kt'],[]),('OverlayTaskPolicyTest',policy,[]),('RecurrenceWindowTest',policy,[]),('RecurrenceAutoSafetyTest',['RecurrenceWindow.kt'],[]),('RealTimeMemoTest',['RealTimeMemo.kt'],['tests/support/JSONObject.kt']),('WeeklyProgressTest',['WeeklyProgress.kt','AutoCheckIntervals.kt'],['tests/support/JSONObject.kt'])]
-for t in sorted((root/'tests/endgame').glob('Endgame*Test.kt')):plans.append((t.stem,['EndgameRecords.kt','EndgameGoals.kt'],['tests/endgame/Models.kt','tests/endgame/Stubs.kt']))
+for t in sorted((root/'tests/endgame').glob('Endgame*Test.kt')):plans.append((t.stem,['EndgameRecords.kt','EndgameGoals.kt','SharedPeriods.kt','RecurrenceWindow.kt'],['tests/endgame/Models.kt','tests/endgame/Stubs.kt']))
 plans += [('OverlayTaskTreeTest', policy + ['TodoTask.kt','OverlayTaskTree.kt'], []),
           ('TaskSupportTest',['TaskSupport.kt','SafeFailure.kt'], []),
-          ('BannerSourcePolicyTest',['StellaBanners.kt','BannerLabels.kt','BannerSource.kt','GameRules.kt','LabelGames.kt','BannerLedger.kt','BannerExpiry.kt','TodoTask.kt'],['tests/banner/TodoistStub.kt'])]
+          ('BannerSourcePolicyTest',['StellaBanners.kt','BannerLabels.kt','BannerSource.kt','GameRules.kt','LabelGames.kt','SharedPeriods.kt','RecurrenceWindow.kt','BannerLedger.kt','BannerExpiry.kt','TodoTask.kt'],['tests/banner/TodoistStub.kt'])]
 plans += [('FixedIntervalsTest',policy+['FixedIntervals.kt'],[]),('EndfieldLongTermTest',['EndfieldLongTerm.kt'],['tests/endgame/Models.kt','tests/endgame/Stubs.kt'])]
-plans += [('EndfieldNotesTest',['EndfieldNotes.kt','SharedPeriods.kt'],['tests/endgame/Stubs.kt'])]
+plans += [('EndfieldNotesTest',['EndfieldNotes.kt','SharedPeriods.kt','RecurrenceWindow.kt'],['tests/endgame/Stubs.kt'])]
+plans += [('FloatingTaskRequestTest',['SharedPeriods.kt','RecurrenceWindow.kt','FloatingTaskDraft.kt','FloatingTaskRequest.kt'],[])]
+plans += [('ResetTimePolicyTest',policy+['FloatingTaskDraft.kt'],[])]
 plans += [('BannerLabelsTest',['BannerLabels.kt'],[])]
 plans += [('UiJobRunnerTest',['UiJobRunner.kt'],[]),
           ('LabelGamesTest',policy+['LabelGames.kt','GameRules.kt','TodoTask.kt','OverlayTaskTree.kt'],[]),
@@ -32,6 +34,7 @@ plans += [('UiJobRunnerTest',['UiJobRunner.kt'],[]),
 def run(plan):
  name,sources,extras=plan;t=next((root/'tests').rglob(name+'.kt'));d=out/name;d.mkdir(exist_ok=True)
  extra_cp = []
+ if name == 'FloatingTaskRequestTest': extra_cp.append(str(dependency('org.json','json','20240303')))
  if name in ('BannerSourcePolicyTest','LabelGamesTest'):
   extra_cp=[str(android_jar)]
   if name == 'BannerSourcePolicyTest': extra_cp.append(str(dependency('org.jsoup','jsoup','1.18.3')))

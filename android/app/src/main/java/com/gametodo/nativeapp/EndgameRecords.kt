@@ -426,9 +426,10 @@ object EndgameRecords {
         return if (active.size == 1) active[0] else null to null
     }
 
-    fun currentPeriod(g: AccountGauge, nowMs: Long): Boolean =
+    fun currentPeriod(g: AccountGauge, nowMs: Long, resetMinutes: Int? = GamePeriods.defaultResetMinutes(g.game)): Boolean =
         g.periodKey != null && g.periodStartMs != null && g.periodEndMs != null &&
-        nowMs >= g.periodStartMs + 20 * 60_000L && nowMs < g.periodEndMs
+        nowMs >= g.periodStartMs + 20 * 60_000L && nowMs < g.periodEndMs &&
+        GamePeriods.currentCycle(g.game,"daily",nowMs,resetMinutes=resetMinutes)!=null
 
     /** UTC epoch/ISO/Asia UTC+8 time and nested schedule date_time support. */
     private fun periodRange(o: JSONObject): Pair<Long?, Long?> {

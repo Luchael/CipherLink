@@ -65,15 +65,17 @@ def read_hoyolab(game, config):
     # Diagnostics include only aggregate scores/errors, not raw account JSON or cookie.
     metrics = dict(status.metrics)
     expiry = dict(status.metric_expiries)
+    windows = dict(status.metric_windows)
     for mode, row in endgames.items():
         metrics[mode] = Gauge(row.value, row.goal)
         if row.current() and row.ends is not None:
             expiry[mode] = row.ends
+            windows[mode] = (row.starts, row.ends)
     details = dict(status.details)
     details['endgame_diagnostics'] = errors
     details['endgame_display'] = {mode: row.display_detail for mode,row in endgames.items()}
     details['endgame_scores'] = {k: f"{v.value}/{v.goal} ({v.basis}; {'현재' if v.current() else '회차 미확인'})" for k,v in endgames.items()}
-    return uid, replace(status, metrics=metrics, metric_expiries=expiry, details=details)
+    return uid, replace(status, metrics=metrics, metric_expiries=expiry, metric_windows=windows, details=details)
 
 
 def read_wuthering(config, http=None):

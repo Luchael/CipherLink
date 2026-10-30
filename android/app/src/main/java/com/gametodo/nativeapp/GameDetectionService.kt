@@ -96,6 +96,11 @@ class GameDetectionService : AccessibilityService() {
         }
     }
 
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if(::overlay.isInitialized) handler.post {overlay.onBoundsChanged()}
+    }
+
     override fun onInterrupt() {
         // 접근성 일시 중단이 반드시 게임 종료를 뜻하지 않는다.
         // 특히 Samsung Game Booster에 의해 끊겼을 때 오버레이를 즉시 제거하면 깜빡인다.
