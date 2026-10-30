@@ -6,8 +6,8 @@ android {
         applicationId = "com.gametodo.cipherlink"
         minSdk = 30
         targetSdk = 35
-        versionCode = 37
-        versionName = "0.11.9"
+        versionCode = 38
+        versionName = "0.11.10"
         // New signing lineage; old installations and their Keystore remain intact.
         resValue("string", "app_name", "사이퍼링크")
     }

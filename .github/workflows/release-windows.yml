@@ -76,6 +76,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./tools/build_windows_installer.ps1 -Version 0.11.5 -InputExecutable previous/CipherLink-Windows.exe -OutputDirectory previous/setup
           ./tools/test_windows_installer.ps1 -PreviousInstaller previous/setup/CipherLink-Windows-Setup.exe -CurrentInstaller publish/CipherLink-Windows-Setup.exe -CurrentVersion $env:RELEASE_VERSION
+      - name: Verify automatic shutdown of hidden and non-responsive applications
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = 'pc'
+          $env:CIPHERLINK_SHUTDOWN_INSTALLER = (Resolve-Path publish/CipherLink-Windows-Setup.exe).Path
+          $env:CIPHERLINK_SHUTDOWN_VERSION = $env:RELEASE_VERSION
+          python -m unittest pc.tests.test_installer_shutdown -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         with:
           name: windows-release

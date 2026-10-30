@@ -21,6 +21,8 @@
 
 ## 설치·업데이트
 
+0.11.10부터 Windows 설치 프로그램의 자동 닫기를 보강해, 종료 요청에 응답하지 않는 프로세스도 설치 대상 파일을 놓도록 처리합니다. 업데이트 전에 진행 중인 입력은 마무리해주세요. [검증 기록](docs/WINDOWS_UPDATE_SHUTDOWN.md)
+
 - **Windows:** 설치·업데이트 파일을 실행하세요. 기존 위치에 업데이트하며 Python 설치는 필요 없습니다.
 - **Windows 무설치판:** 앱을 종료한 뒤 EXE를 교체합니다.
 - **Android:** 위의 APK를 설치합니다. 0.11.9 이후에는 새 정식 앱 위에 업데이트할 수 있습니다.
@@ -61,4 +63,4 @@ Android는 JDK 17·SDK 35·Gradle 8.10.2를 사용합니다. [프로젝트 시�
 
 회귀 테스트·빌드 성공은 실제 계정 로그인·게임 API·사용자 Windows·Android17 동작 검증을 대신하지 않습니다. 기존 게임의 공식 초기화 시각 전체 재검증도 남아 있습니다.
 
-[0.11.9 변경](docs/releases/v0.11.9.md) · [초기화·플로팅 구현과 검증](docs/RESET_FLOATING_0118.md) · [제품·Todoist 기준](docs/PRODUCT_AND_TODOIST.md)
+[0.11.10 변경](docs/releases/v0.11.10.md) · [Android 첫 전환 안내](docs/releases/v0.11.9.md) · [초기화·플로팅 구현과 검증](docs/RESET_FLOATING_0118.md) · [제품·Todoist 기준](docs/PRODUCT_AND_TODOIST.md)

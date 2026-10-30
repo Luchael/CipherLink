@@ -5,7 +5,7 @@
 1. PC `__version__`, Android `versionName`, Windows 리소스 버전을 같은 새 버전으로 올리고 Android `versionCode`를 증가시킨다.
 2. 소스를 main에 푸시한다. 버전 파일 변경을 감지한 `Release CipherLink`가 자동 실행된다.
 3. 해당 소스의 버전 태그를 만들고 Windows와 Android를 독립 빌드한다.
-4. Windows 설치·업데이트·제거 검증과 Android 패키지·버전 코드·서명 인증서·ZIP 무결성을 확인한다.
+4. Windows 설치·업데이트·제거 및 숨김/종료 거부 프로세스의 자동 종료 검증과 Android 패키지·버전 코드·서명 인증서·ZIP 무결성을 확인한다.
 5. 양쪽 파일과 SHA256SUMS.txt/update.json이 준비되면 정식 릴리스를 게시한다.
 6. README 맨 위 다운로드 영역을 실제 첨부파일로 갱신한다.
 
