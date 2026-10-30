@@ -5,7 +5,7 @@ NOW_START=1791000000
 NOW_END=1801000000
 class ShiyuSGradeTests(unittest.TestCase):
     def record(self, scores, fourth='S', passed=True, grades=None):
-        rooms=[{'score':v, **({'rating':grades[i]} if grades else {})} for i,v in enumerate(scores)]
+        rooms=[{'score':v, 'rating': grades[i] if grades else 'S'} for i,v in enumerate(scores)]
         return {'hadal_ver':'v2','hadal_info_v2':{
             'begin_time':NOW_START,'end_time':NOW_END,
             'fourth_layer_detail':{'rating':fourth},
@@ -20,7 +20,7 @@ class ShiyuSGradeTests(unittest.TestCase):
         self.assertEqual(p.goal,4)
 
     def test_90k_alone_does_not_count_as_three_s(self):
-        p=parse('shiyu',self.record([50000,20000,20000]));self.assertEqual((p.value,p.goal),(2,4))
+        p=parse('shiyu',self.record([50000,20000,20000], grades=['S','A','A']));self.assertEqual((p.value,p.goal),(2,4))
     def test_fourth_A_does_not_autocomplete(self):
         p=parse('shiyu',self.record([26390,48516,45724],fourth='A'));self.assertEqual((p.value,p.goal),(3,4))
     def test_rating_overrides_score(self):

@@ -310,7 +310,7 @@ class GameAccountLoginActivity : Activity() {
                     val list = if (provider == "hoyolab") HoyoProvider.progress(credential, role)
                         else EndfieldProvider.progress(credential, role,applicationContext,includeLongTerm=false)
                     "${displayGame(role.game)}: " +
-                        if (list.isEmpty()) "계정 확인됨 / 지원하는 점수 필드 미발견" else list.filter {ProgressPresentation.visible(role.game,it.metric) && !it.displayOnly}.joinToString { "${ProgressPresentation.title(role.game,it.metric)}: ${it.current}/${it.maximum}" }
+                        if (list.isEmpty()) "계정 확인됨 / 지원하는 점수 필드 미발견" else list.filter {ProgressPresentation.visible(role.game,it.metric) && !it.displayOnly}.joinToString { "${ProgressPresentation.title(role.game,it.metric)}: ${ProgressPresentation.value(it.metric,it.current,it.maximum,it.hasRecord)}" }
                 } catch (error: Exception) {
                     "${displayGame(role.game)}: 데이터 조회 실패 (${SafeFailure.describe(error)})"
                 }

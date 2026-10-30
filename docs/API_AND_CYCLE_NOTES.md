@@ -16,6 +16,8 @@
 
 ## 젠레스 존 제로
 
+0.11.11의 응답 재생·미도전/부분 기록 처리·검증 범위는 [시유 기록 안내](SHIYU_RECORDS.md)를 따른다. 시유는 별이 아닌 API S 등급을 세며, 정상 미도전은 `기록 없음`으로 표시한다.
+
 - 시유 `shiyu`: `hadal_ver=v2`, `hadal_info_v2.hadal_begin_time/hadal_end_time`, `fourth_layer_detail.rating`, `fitfh_layer_detail.layer_challenge_info_list[].{rating,score}`, `brief.{score,max_score,rating}`. 현재 완주 기준: 제4전선 S + 제5전선 **세 방 개별 S**, 총합 90,000점 등으로 대체하지 말 것. 과거 사용자 진단에 제4전선 S 및 제5전선 S/S/S 기록이 있었음.
 - 위험한 강습전 `deadly`: **`list[]`는 일반**, `hard_list[]`는 절망, `has_data`, `has_hard`, `total_star`, `total_score`, `start_time`, `end_time`.
 - **핵심 버그가 고쳐진 사실**: API `retcode=0`, `has_data=false`, `list=[]`, `total_star=0`은 현재 회차 **미도전(0/9별)**이므로 오류로 표시하지 말 것. 과거 시즌 `list[]` 3개/9별이고 `hard_list[]` 별도 전적도 존재했음. 일반 보상 완료는 현재 회차 **일반 9별만**으로 판단.

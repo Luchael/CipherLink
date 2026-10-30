@@ -67,7 +67,7 @@ def read_hoyolab(game, config):
     expiry = dict(status.metric_expiries)
     windows = dict(status.metric_windows)
     for mode, row in endgames.items():
-        metrics[mode] = Gauge(row.value, row.goal)
+        metrics[mode] = Gauge(row.value, row.goal, row.completion_verified, row.has_record)
         if row.current() and row.ends is not None:
             expiry[mode] = row.ends
             windows[mode] = (row.starts, row.ends)

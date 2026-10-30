@@ -23,7 +23,7 @@ class PublicModelContractTests(unittest.TestCase):
     def test_shiyu_sdk_raw_response_is_unwrapped(self):
         raw={'hadal_begin_time':1791000000,'hadal_end_time':1801000000,
              'fourth_layer_detail':{'rating':'S'},'pass_fifth_floor':True,
-             'fitfh_layer_detail':{'layer_challenge_info_list':[{'score':26390},{'score':48516},{'score':45724}]}}
+             'fitfh_layer_detail':{'layer_challenge_info_list':[{'score':26390,'rating':'S'},{'score':48516,'rating':'S'},{'score':45724,'rating':'S'}]}}
         result=parse('shiyu',raw)
         self.assertIsNotNone(result)
         self.assertEqual((result.value,result.goal),(4,4))
@@ -34,7 +34,7 @@ class PublicModelContractTests(unittest.TestCase):
         raw={'hadal_begin_time':{'timestamp':now-3600,'tzinfo':timezone.utc},
              'hadal_end_time':{'timestamp':now+3600,'tzinfo':timezone.utc},
              'fourth_layer_detail':{'rating':'S'},'pass_fifth_floor':True,
-             'fitfh_layer_detail':{'layer_challenge_info_list':[{'score':26000}]*3}}
+             'fitfh_layer_detail':{'layer_challenge_info_list':[{'score':26000,'rating':'S'}]*3}}
         self.assertTrue(parse('shiyu',raw).current())
         raw['hadal_end_time']['timestamp']=now-1
         self.assertFalse(parse('shiyu',raw).current())

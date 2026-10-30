@@ -12,10 +12,12 @@ from typing import Any
 class Gauge:
     current: int | None
     maximum: int | None
+    completion_verified: bool = True
+    has_record: bool = True
 
     @property
     def filled(self) -> bool:
-        return (type(self.current) is int and type(self.maximum) is int
+        return (self.completion_verified and type(self.current) is int and type(self.maximum) is int
                 and self.maximum > 0 and self.current >= self.maximum)
 
     def text(self):

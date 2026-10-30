@@ -13,5 +13,8 @@ fun main() {
     check(!P.visible("hsr","weekly") && !P.visible("zzz","weekly"))
     check(P.visible("genshin","weekly") && P.visible("hsr","rogue_weekly"))
     check(P.value("shiyu",4,4)=="4 / 4 S" && P.value("deadly",9,9)=="9 / 9별")
+    check(P.value("shiyu",0,4,hasRecord=false)=="기록 없음")
+    check(P.value("shiyu",0,4,hasRecord=true)=="0 / 4 S")
+    check(P.value("shiyu",null,null)=="정보 없음")
     println("Progress cards preserve zero, unknown and fulfilled values without inventing scores")
 }

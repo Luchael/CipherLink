@@ -94,7 +94,7 @@ object EndgameRecords {
                     .add(deadlyDiagnostic(body))
                 val got = parse(role, s.mode, body)
                 if (got == null) {
-                    problems.getOrPut(s.mode) { mutableListOf() }.add("응답 성공·점수/회차 확인 불가(${shape(body)})")
+                    problems.getOrPut(s.mode) { mutableListOf() }.add(if (s.mode == "shiyu") shiyuDiagnostic(body) else "응답 성공·점수/회차 확인 불가(${shape(body)})")
                 } else {
                     gauges[s.mode] = got
                     if (got.periodKey == null) problems.getOrPut(s.mode) { mutableListOf() }
@@ -157,13 +157,14 @@ object EndgameRecords {
         val record = if (mode == "arbitration") pickPeakSeason(root) ?: return null else root
         // 강습전: API가 정상 응답하고 회차 시작/종료를 주면서 has_data=false이면
         // '조회 실패'가 아닌 '해당 회차 미도전(0/9)'이다. 다른 모드는 보수적으로 보류.
-        if (record.opt("has_data") == false && mode != "deadly") return null
+        if (record.opt("has_data") == false && mode !in setOf("deadly","shiyu")) return null
+        val shiyu = if (mode == "shiyu") shiyuRatings(record) else null
         val (current, max) = when (mode) {
             "spiral" -> abyssStars(record)
             "theater" -> theaterStellas(record)
             "moc", "pure_fiction", "apocalyptic" -> explicitStars(record)
             "arbitration" -> arbitrationStars(record)
-            "shiyu" -> shiyuStars(record)
+            "shiyu" -> (shiyu?.count to shiyu?.goal)
             "deadly" -> deadlyStars(record)
             else -> return null
         }
@@ -182,7 +183,9 @@ object EndgameRecords {
         val end = period.second
         val key = if (start != null && end != null && end > start) "$mode:$start:$end" else null
         return AccountGauge(role.game, role.uid, mode, current, goal,
-            periodKey = key, periodStartMs = start, periodEndMs = end, displayDetail = scoreDetail(mode,payload))
+            periodKey = key, periodStartMs = start, periodEndMs = end,
+            displayDetail = listOfNotNull(shiyu?.detail, scoreDetail(mode,payload).takeIf { it.isNotBlank() }).joinToString(" · "),
+            completionVerified = shiyu?.verified ?: true, hasRecord = shiyu?.hasRecord ?: true)
     }
 
     /** 환상극 data 배열에서 schedule_type=1 회차, 아니면 명확하게 가장 최신 회차를 채택. */
@@ -333,59 +336,95 @@ object EndgameRecords {
         return "deadly: $normalText / 절망 ${detail(hard)} (추가 보상, 완료 판정 제외)"
     }
 
-    /** 시유 신/구버전별 데이터의 점수 단위가 다른 경우 무리해서 환산하지 않는다. */
-    private fun shiyuStars(payload: JSONObject): Pair<Int?, Int?> {
+    private data class ShiyuRatings(val count: Int, val goal: Int, val verified: Boolean, val detail: String, val hasRecord: Boolean = true)
+
+    private fun shiyuRecord(payload: JSONObject): Pair<String?, JSONObject> {
         val version = readString(payload,"hadal_ver")
-        val o = when(version) {
-            "v1" -> payload.optJSONObject("hadal_info_v1") ?: payload
-            "v2" -> payload.optJSONObject("hadal_info_v2") ?: payload
-            else -> payload
+        if (version in listOf("v1","v2")) return version to (payload.optJSONObject("hadal_info_$version") ?: payload)
+        if (version != null) return null to JSONObject()
+        payload.optJSONObject("hadal_info_v2")?.let { return "v2" to it }
+        payload.optJSONObject("hadal_info_v1")?.let { return "v1" to it }
+        val keys = payload.keys().asSequence().toSet()
+        return when {
+            keys.any { it in setOf("fourth_layer_detail","fitfh_layer_detail","fifth_layer_detail","pass_fifth_floor","zone_id") } -> "v2" to payload
+            keys.any { it in setOf("all_floor_detail","floors","rating_list") } -> "v1" to payload
+            else -> null to payload
         }
-        // v2: 명료한 S등급 항목 4개(제4전선 1 + 제5전선의 방 3개)를 센다.
-        // 각 방의 rating이 있으면 그 등급을 우선 사용하고, 없으면 게임의 S 점수 기준
-        // 25,000점을 사용한다. **합계 90,000점은 S 3개를 보증하지 않는다.**
-        if (version == "v2") {
-            val fourth = o.optJSONObject("fourth_layer_detail")
-            val fifth = o.optJSONObject("fitfh_layer_detail")
-                ?: o.optJSONObject("fifth_layer_detail")
-            val rooms = fifth?.optJSONArray("layer_challenge_info_list")
-            val rank = fourth?.optString("rating")?.uppercase()?.trim()
-            if (rooms != null && rooms.length() == 3 && !rank.isNullOrBlank()) {
-                val sGrades = setOf("S", "S+", "SS")
-                val knownGrades = sGrades + setOf("A", "B", "C", "D", "F")
-                if (rank in knownGrades) {
-                    val roomS = (0 until 3).map { i ->
-                        val room = rooms.optJSONObject(i)
-                        if (room == null) null else {
-                            val rating = room.optString("rating").uppercase().trim()
-                            when {
-                                rating in knownGrades -> rating in sGrades
-                                readNumber(room, "score")?.let { it >= 0 } == true ->
-                                    readNumber(room, "score")!! >= 25_000
-                                else -> null
-                            }
-                        }
-                    }
-                    if (roomS.all { it != null }) {
-                        val fourthS = if (rank in sGrades) 1 else 0
-                        val fifthSCount = roomS.count { it == true }
-                        // 전선 통과 여부까지 API가 거짓이라고 응답한다면 완료로 간주하지 않는다.
-                        val verifiedFifth = if (o.opt("pass_fifth_floor") == true)
-                            fifthSCount else minOf(fifthSCount, 2)
-                        return (fourthS + verifiedFifth) to 4
-                    }
-                }
+    }
+
+    /** 시유는 API의 S 등급 수로만 판단한다. 별/합계 점수/종합 S+로 대신하지 않는다. */
+    private fun shiyuRatings(payload: JSONObject): ShiyuRatings? {
+        val (version,o) = shiyuRecord(payload)
+        if (o.opt("has_data") == false && version != "v2") return null
+        val known = setOf("S","A","B")
+        fun grade(row: JSONObject?): String? = readString(row ?: JSONObject(),"rating")?.trim()?.uppercase(java.util.Locale.ROOT)
+        fun rows(a: JSONArray): List<JSONObject>? {
+            val result = (0 until a.length()).mapNotNull { a.optJSONObject(it) }
+            if (result.size != a.length()) return null
+            val ids = result.map { it.opt("layer_id") }
+            if (ids.any { it != null } && (ids.any { it !is Int && it !is Long } || ids.toSet().size != ids.size)) return null
+            return result
+        }
+        if (version == "v1") {
+            val floors = o.optJSONArray("all_floor_detail") ?: o.optJSONArray("floors")
+            if (floors != null && floors.length() in 1..7) {
+                val grades = rows(floors)?.map { grade(it) }
+                if (grades != null && grades.all { it in known })
+                    return ShiyuRatings(grades.count { it == "S" },7,true,"확인된 S · 구형 시유 7개 노드 기준")
             }
+            val ratings = o.optJSONArray("rating_list")
+            if (ratings != null && ratings.length() in 1..3) {
+                val records = rows(ratings) ?: return null
+                val grades = records.map { grade(it) }
+                val counts = records.map { readNumber(it,"times") }
+                if (grades.all { it in known } && grades.toSet().size == grades.size &&
+                    counts.all { it != null && it in 0..7 } && counts.sumOf { it ?: 0 } <= 7)
+                    return ShiyuRatings(records.filter { grade(it) == "S" }.sumOf { readNumber(it,"times") ?: 0 },7,true,"확인된 S · 구형 시유 등급별 횟수")
+            }
+            return null
         }
-        val explicit = readNumber(o,"brief_info.total_star","total_star","total_stars")
-        val maximum = readNumber(o,"brief_info.max_star","max_star_num","max_star")
-        if (explicit != null && maximum != null) return explicit to maximum
-        val floors = o.optJSONArray("floors")
-        if (floors != null && floors.length() == 7) {
-            val grades = (0 until floors.length()).map { floors.optJSONObject(it)?.optString("rating") }
-            if (grades.all { it in listOf("S","A","B") }) return grades.count { it == "S" } to 7
+        if (version != "v2") return null
+        fun emptyFrontier(key: String): Boolean {
+            if (o.isNull(key)) return true
+            val detail = o.optJSONObject(key) ?: return false
+            if (!detail.isNull("layer_challenge_info_list") && detail.optJSONArray("layer_challenge_info_list") == null) return false
+            return readString(detail,"rating").isNullOrEmpty() &&
+                (detail.optJSONArray("layer_challenge_info_list")?.length() ?: 0) == 0 &&
+                readString(detail,"challenge_time") in listOf(null,"","0")
         }
-        return null to null
+        val (start,end) = periodRange(payload)
+        val brief = o.optJSONObject("brief")
+        if (o.opt("pass_fifth_floor") == false && (o.isNull("brief") || brief != null) &&
+            emptyFrontier("fourth_layer_detail") &&
+            emptyFrontier("fitfh_layer_detail") && emptyFrontier("fifth_layer_detail") &&
+            readString(brief ?: JSONObject(),"rating").isNullOrEmpty() &&
+            readString(brief ?: JSONObject(),"score") in listOf(null,"0") &&
+            start != null && end != null && end > start)
+            return ShiyuRatings(0,4,true,"해당 회차 미도전",hasRecord=false)
+        if (o.opt("has_data") == false) return null
+        val fourth = grade(o.optJSONObject("fourth_layer_detail"))
+        if (fourth !in known && !fourth.isNullOrEmpty()) return null
+        val fifth = o.optJSONObject("fitfh_layer_detail") ?: o.optJSONObject("fifth_layer_detail")
+        val rooms = fifth?.optJSONArray("layer_challenge_info_list")
+        if (rooms != null && rooms.length() > 3) return null
+        val records = if (rooms == null) emptyList() else rows(rooms) ?: return null
+        val grades = records.map { grade(it) }
+        if (grades.any { it !in known && !it.isNullOrEmpty() }) return null
+        if (fourth !in known && grades.none { it in known }) return null
+        val count = (if (fourth == "S") 1 else 0) + grades.count { it == "S" }
+        val verified = fourth in known && grades.size == 3 && grades.all { it in known } && o.opt("pass_fifth_floor") == true
+        val detail = "확인된 S · 제4전선 ${fourth?.takeIf { it.isNotEmpty() } ?: "미확인"} · 제5전선 S ${grades.count { it == "S" }}/3" +
+            (if (verified) "" else " · 일부 기록/통과 미확인, 자동 완료 보류")
+        return ShiyuRatings(count,4,verified,detail)
+    }
+
+    /** Allowlisted schema states only; no raw response, nickname, UID or URL values. */
+    fun shiyuDiagnostic(payload: JSONObject): String {
+        val (version,o) = shiyuRecord(currentRecord(payload,"shiyu"))
+        val rank = readString(o,"fourth_layer_detail.rating").takeIf { it in setOf("S","A","B") } ?: "없음/미확인"
+        val fifth = o.optJSONObject("fitfh_layer_detail") ?: o.optJSONObject("fifth_layer_detail")
+        val n = fifth?.optJSONArray("layer_challenge_info_list")?.length()?.takeIf { it in 0..3 }?.toString() ?: "없음/미확인"
+        return "응답 성공·S 등급 기록 확인 필요 (${version ?: "미확인"}, 제4전선 $rank, 제5전선 방 $n)"
     }
 
     private fun arbitrationStars(o: JSONObject): Pair<Int?, Int?> {

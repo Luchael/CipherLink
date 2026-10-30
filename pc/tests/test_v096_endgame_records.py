@@ -34,17 +34,14 @@ class EndgameDataTests(unittest.TestCase):
         self.assertTrue(g.filled);self.assertFalse(g.current())
         self.assertIsNone(parse('moc',{'list':[{'total_star':36},{'total_star':36}]}))
 
-    def test_zzz_v2_explicit_stars(self):
-        g=parse('shiyu',{'hadal_ver':'v2','hadal_begin_time':S,'hadal_end_time':E,
-                         'hadal_info_v2':{'brief_info':{'total_star':5,'max_star':5}}})
-        # v2 envelope parses the score; expiration is resolved by the parent envelope.
-        self.assertEqual((g.value,g.goal),(5,5))
-        self.assertTrue(g.filled)
+    def test_zzz_v2_stars_are_not_s_ratings(self):
+        self.assertIsNone(parse('shiyu',{'hadal_ver':'v2','hadal_begin_time':S,'hadal_end_time':E,
+                         'hadal_info_v2':{'brief_info':{'total_star':5,'max_star':5}}}))
         self.assertIsNone(parse('shiyu',{'hadal_ver':'v2','hadal_info_v2':{'total_score':999999}}))
 
     def test_nested_shiyu_season_and_dynamic_starward_target(self):
         s=parse('shiyu',{'hadal_ver':'v2','hadal_info_v2':{'begin_time':S,'end_time':E,
-                          'brief_info':{'total_star':5,'max_star':5}}})
+                          'fourth_layer_detail':{'rating':'S'}}})
         self.assertEqual((s.starts,s.ends),(S,E))
         self.assertTrue(s.current(datetime.fromtimestamp(S+3600,timezone.utc)))
         future=parse('moc',{'begin_time':S,'end_time':E,'total_star':36,'max_star':48})

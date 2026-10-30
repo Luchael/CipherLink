@@ -15,7 +15,7 @@ class PublicSchemaContract(unittest.TestCase):
         self.assertIsNone(parse('shiyu',{'hadal_ver':'v2','hadal_info_v2':{'brief_info':{'total_score':999999}}}))
     def test_nested_shiyu_dates(self):
         res=parse('shiyu',{'hadal_ver':'v2','hadal_info_v2':{'hadal_begin_time':1791000000,
-            'hadal_end_time':1801000000, 'brief_info':{'total_star':5,'max_star':5}}})
+            'hadal_end_time':1801000000, 'fourth_layer_detail':{'rating':'S'}}})
         self.assertEqual(res.starts,1791000000)
 
 if __name__ == '__main__': unittest.main()

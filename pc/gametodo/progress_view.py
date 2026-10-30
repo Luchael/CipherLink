@@ -34,13 +34,17 @@ def status_rows(status):
         if key=='weekly' and status.game in ('hsr','zzz'):continue
         if key=='bounty_tasks' and gauge.current is None:continue
         row=present(key,gauge.current,gauge.maximum)
+        if not gauge.completion_verified:row=replace(row,state='확인 필요')
         if key=='weekly' and status.game=='genshin':row=replace(row,title='주간 보스')
         detail=(status.details.get('endgame_display') or {}).get(key,'')
         if key in ('shiyu','deadly'):
             if gauge.current is None:
                 detail=(status.details.get('endgame_diagnostics') or {}).get(key,'API 기록을 확인하지 못했어요')
             else:
-                row=replace(row,value=row.value+(' S' if key=='shiyu' else '별'))
+                if key=='shiyu' and not gauge.has_record:
+                    row=replace(row,value='기록 없음',state='미도전',show_bar=False)
+                else:
+                    row=replace(row,value=row.value+(' S' if key=='shiyu' else '별'))
                 if key not in status.metric_expiries:detail='회차 확인 필요'+(' · '+detail if detail else '')
         if key=='weekly_boss_used' or (key=='weekly' and status.game=='genshin'):
             detail='주간 보상 사용 횟수'+(f' · 남은 보상 {gauge.maximum-gauge.current}회' if gauge.current is not None and gauge.maximum is not None else '')

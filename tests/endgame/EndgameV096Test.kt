@@ -27,14 +27,13 @@ fun main() {
         obj("score" to 40000),obj("score" to 10000),obj("score" to 10000)))))!!
     check(bad.current==5)
     check(EndgameRecords.parse(zzz,"deadly",obj("total_score" to 90000))==null)
-    val shy=EndgameRecords.parse(zzz,"shiyu",obj("hadal_ver" to "v2",
-        "hadal_begin_time" to s,"hadal_end_time" to e,
-        "hadal_info_v2" to obj("brief_info" to obj("total_star" to 5,"max_star" to 5))))!!
-    check(shy.current==5 && shy.maximum==5 && shy.periodKey!=null)
+    // 시유에는 별 개수를 S 등급으로 치환하는 경로가 없어야 한다.
+    check(EndgameRecords.parse(zzz,"shiyu",obj("hadal_ver" to "v2",
+        "hadal_info_v2" to obj("brief_info" to obj("total_star" to 5,"max_star" to 5)))) == null)
     val nested=EndgameRecords.parse(zzz,"shiyu",obj("hadal_ver" to "v2",
         "hadal_info_v2" to obj("begin_time" to s,"end_time" to e,
-        "brief_info" to obj("total_star" to 5,"max_star" to 5))))!!
-    check(nested.periodKey!=null)
+        "fourth_layer_detail" to obj("rating" to "S"))))!!
+    check(nested.periodKey!=null && nested.current==1)
     val extended=EndgameRecords.parse(hsr,"moc",obj("begin_time" to s,"end_time" to e,
         "total_star" to 36,"max_star" to 48))!!
     check(extended.current==36 && extended.maximum==48)
@@ -63,7 +62,7 @@ fun main() {
     check(EndgameRecords.queryFor(zzz,"shiyu").startsWith("role_id="))
     val newNested=EndgameRecords.parse(zzz,"shiyu",obj("hadal_ver" to "v2",
         "hadal_info_v2" to obj("hadal_begin_time" to s,"hadal_end_time" to e,
-        "brief_info" to obj("total_star" to 5,"max_star" to 5))))!!
+        "fourth_layer_detail" to obj("rating" to "S"))))!!
     check(newNested.periodKey != null)
     val noSeason=EndgameRecords.parse(hsr,"moc",obj("total_star" to 36))!!
     check(noSeason.periodKey==null)

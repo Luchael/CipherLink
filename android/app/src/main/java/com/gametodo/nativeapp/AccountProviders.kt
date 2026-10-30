@@ -26,9 +26,11 @@ data class AccountGauge(
     val periodEndMs: Long? = null,
     val displayDetail: String = "",
     val displayTitle: String = "",
-    val displayOnly: Boolean = false
+    val displayOnly: Boolean = false,
+    val completionVerified: Boolean = true,
+    val hasRecord: Boolean = true
 ) {
-    val filled: Boolean get() = maximum > 0 && current >= maximum && current >= 0
+    val filled: Boolean get() = completionVerified && maximum > 0 && current >= maximum && current >= 0
 }
 
 data class GameRole(val game: String, val uid: String, val server: String, val nickname: String)

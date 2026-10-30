@@ -27,8 +27,10 @@ class EndgameProgress:
     ends: int | None
     basis: str
     display_detail: str = ""
+    completion_verified: bool = True
+    has_record: bool = True
     @property
-    def filled(self): return self.goal > 0 and self.value >= self.goal
+    def filled(self): return self.completion_verified and self.goal > 0 and self.value >= self.goal
     def current(self, when: datetime | None=None):
         now = (when or datetime.now(timezone.utc)).timestamp()
         return self.starts is not None and self.ends is not None and self.starts+1200 <= now < self.ends
@@ -157,57 +159,109 @@ def _deadly(record):
             return sum(3 if p>=20000 else 2 if p>=14000 else 1 if p>=6000 else 0 for p in points),'per-boss score tiers 6000/14000/20000'
     return None,'missing per-boss records'
 
+def _shiyu_record(record):
+    version=field(record,'hadal_ver')
+    # genshin.py removes both the version tag and the versioned envelope.
+    if version in ('v1','v2'):
+        record=field(record,'hadal_info_'+version) or record
+    elif version is not None:
+        return None,{}
+    elif isinstance(field(record,'hadal_info_v2'),dict):
+        version='v2';record=record['hadal_info_v2']
+    elif isinstance(field(record,'hadal_info_v1'),dict):
+        version='v1';record=record['hadal_info_v1']
+    elif any(k in record for k in ('fourth_layer_detail','fitfh_layer_detail','fifth_layer_detail','pass_fifth_floor','zone_id')):
+        version='v2'
+    elif any(k in record for k in ('all_floor_detail','floors','rating_list')):
+        version='v1'
+    return version,record
+
+
+def _shiyu(record):
+    """Count API S ratings. Missing records/points/summary rank cannot prove S."""
+    version,o=_shiyu_record(record)
+    unknown=(None,None,False,'',False)
+    if field(o,'has_data') is False and version!='v2':return unknown
+    known={'S','A','B'}
+    def grade(row):
+        value=field(row,'rating')
+        return value.strip().upper() if isinstance(value,str) else None
+    def distinct(rows):
+        ids=[field(row,'layer_id') for row in rows]
+        return not any(v is not None for v in ids) or (all(type(v) is int for v in ids) and len(set(ids))==len(ids))
+    if version=='v1':
+        rows=field(o,'all_floor_detail','floors')
+        if isinstance(rows,list) and 0<len(rows)<=7 and distinct(rows):
+            grades=[grade(row) for row in rows]
+            if all(v in known for v in grades):
+                return grades.count('S'),7,True,'확인된 S · 구형 시유 7개 노드 기준',True
+        # Public raw API also exposes explicit grade counts, not stars.
+        ratings=field(o,'rating_list')
+        if isinstance(ratings,list) and 0<len(ratings)<=3:
+            grades=[grade(row) for row in ratings]
+            counts=[integer(row,'times') for row in ratings]
+            if (all(v in known for v in grades) and len(set(grades))==len(grades)
+                    and all(v is not None and 0<=v<=7 for v in counts) and sum(counts)<=7):
+                return sum(n for g,n in zip(grades,counts) if g=='S'),7,True,'확인된 S · 구형 시유 등급별 횟수',True
+        return unknown
+    if version!='v2':return unknown
+    # The SDK declares both frontier details/brief optional. An explicit failure
+    # to pass + no challenge evidence + an actual season window is a zero record,
+    # not an API failure. Never turn missing authentication/schema/period into 0.
+    fourth_detail=field(o,'fourth_layer_detail')
+    fifth_detail=field(o,'fitfh_layer_detail','fifth_layer_detail')
+    def empty_frontier(detail):
+        return detail is None or (isinstance(detail,dict)
+            and field(detail,'rating') in (None,'')
+            and field(detail,'layer_challenge_info_list') in (None,[])
+            and field(detail,'challenge_time') in (None,0,''))
+    start,end=period(record)
+    brief=field(o,'brief')
+    if (field(o,'pass_fifth_floor') is False and (brief is None or isinstance(brief,dict))
+            and empty_frontier(fourth_detail)
+            and empty_frontier(fifth_detail) and field(o,'brief.rating') in (None,'')
+            and field(o,'brief.score') in (None,0,'0')
+            and start is not None and end is not None and end>start):
+        return 0,4,True,'해당 회차 미도전',False
+    if field(o,'has_data') is False:return unknown
+    fourth=grade(field(o,'fourth_layer_detail'))
+    if fourth not in known and fourth not in (None,''):return unknown
+    rooms=field(o,'fitfh_layer_detail.layer_challenge_info_list','fifth_layer_detail.layer_challenge_info_list')
+    if rooms is None:rooms=[]
+    if not isinstance(rooms,list) or len(rooms)>3 or not distinct(rooms):return unknown
+    grades=[grade(row) for row in rooms]
+    if any(not isinstance(row,dict) for row in rooms):return unknown
+    if any(v not in known and v not in (None,'') for v in grades):return unknown
+    if fourth not in known and not any(v in known for v in grades):return unknown
+    count=int(fourth=='S')+grades.count('S')
+    verified=(fourth in known and len(grades)==3 and all(v in known for v in grades)
+              and field(o,'pass_fifth_floor') is True)
+    detail=f"확인된 S · 제4전선 {fourth or '미확인'} · 제5전선 S {grades.count('S')}/3"
+    if not verified:detail+=' · 일부 기록/통과 미확인, 자동 완료 보류'
+    return count,4,verified,detail,True
+
+
+def shiyu_diagnostic(payload):
+    """Only allowlisted schema states; never echo unknown field values/identifiers."""
+    version,o=_shiyu_record(choose_record(payload,'shiyu'))
+    version=version if version in ('v1','v2') else '미확인'
+    fourth=field(o,'fourth_layer_detail.rating')
+    rank=fourth if fourth in ('S','A','B') else '없음/미확인'
+    rooms=field(o,'fitfh_layer_detail.layer_challenge_info_list','fifth_layer_detail.layer_challenge_info_list')
+    n=str(len(rooms)) if isinstance(rooms,list) and len(rooms)<=3 else '없음/미확인'
+    return f'응답 성공·S 등급 기록 확인 필요 ({version}, 제4전선 {rank}, 제5전선 방 {n})'
+
+
 def parse(mode, payload):
     record=choose_record(payload,mode)
     if mode=='arbitration':record=_peak(record)
     if not record:return None
-    if field(record,'has_data') is False and mode!='deadly':return None
-    value=None;maximum=TARGETS.get(mode);basis=''
+    if field(record,'has_data') is False and mode not in ('deadly','shiyu'):return None
+    value=None;maximum=TARGETS.get(mode);basis='';verified=True;has_record=True
     if mode=='theater':value,basis=_stella(record)
     elif mode=='deadly':value,basis=_deadly(record)
     elif mode=='shiyu':
-        # v1 ratings across seven critical nodes; V2 has a different reward system.
-        version=field(record,'hadal_ver')
-        # genshin.py 1.7.31 get_shiyu_defense(raw=True) removes hadal_ver and unwraps v2.
-        if version is None and isinstance(field(record,'fourth_layer_detail'),dict) and isinstance(field(record,'fitfh_layer_detail','fifth_layer_detail'),dict):
-            version='v2'
-        if version=='v1' and isinstance(field(record,'hadal_info_v1'),dict):record=field(record,'hadal_info_v1')
-        elif version=='v2' and isinstance(field(record,'hadal_info_v2'),dict):record=field(record,'hadal_info_v2')
-        rows=field(record,'floors')
-        if isinstance(rows,list) and len(rows)==7:
-            grade=[field(x,'rating') for x in rows]
-            if all(isinstance(x,str) for x in grade):
-                value=sum(x.upper()=='S' for x in grade);maximum=7;basis='7 floor S ratings'
-        if version=='v2' and value is None:
-            rooms=field(record,'fitfh_layer_detail.layer_challenge_info_list',
-                              'fifth_layer_detail.layer_challenge_info_list')
-            grade=field(record,'fourth_layer_detail.rating')
-            s_grades={'S','S+','SS'}
-            known_grades=s_grades|{'A','B','C','D','F'}
-            if isinstance(rooms,list) and len(rooms)==3 and isinstance(grade,str) and grade.strip().upper() in known_grades:
-                room_s=[]
-                for room in rooms:
-                    if not isinstance(room,dict):break
-                    room_grade=field(room,'rating')
-                    if isinstance(room_grade,str) and room_grade.strip().upper() in known_grades:
-                        room_s.append(room_grade.strip().upper() in s_grades)
-                    else:
-                        score=integer(room,'score')
-                        if score is None or score<0:break
-                        room_s.append(score>=25000)
-                if len(room_s)==3:
-                    # 4전선 S 1개 + 5전선 세 방의 S 3개. 90k 합계로 판정하지 않는다.
-                    fourth_s=int(grade.strip().upper() in s_grades)
-                    fifth_s=sum(room_s)
-                    if field(record,'pass_fifth_floor') is not True:
-                        fifth_s=min(fifth_s,2)  # 서버가 통과 확인을 거부하면 자동 완료 보류
-                    value=fourth_s+fifth_s;maximum=4
-                    basis='V2 four S grades: fourth frontier + 3 fifth rooms (each >=25k)'
-        # V2 brief_info may expose a verified explicit star total, but score alone is not stars.
-        if value is None:
-            value=integer(record,'brief_info.total_star','total_star','total_stars')
-            maximum=integer(record,'brief_info.max_star','max_star_num')
-            basis='explicit star count'
+        value,maximum,verified,basis,has_record=_shiyu(record)
     elif mode=='spiral':
         value=integer(record,'total_star','total_stars')
         basis='API total stars'
@@ -227,7 +281,7 @@ def parse(mode, payload):
         basis='API total stars'
     if type(value) is not int or type(maximum) is not int or value<0 or maximum<=0 or value>500:return None
     explicit_max=integer(record,'max_star_num','max_stars','max_star','total_max_stars','max_star_count')
-    if explicit_max is not None and explicit_max > maximum and explicit_max <= 500:
+    if mode != 'shiyu' and explicit_max is not None and explicit_max > maximum and explicit_max <= 500:
         maximum=explicit_max
     start,end=period(record)
     if mode=='arbitration' and (start is None or end is None):
@@ -241,7 +295,9 @@ def parse(mode, payload):
         active=[x for x in payload['seasons'] if isinstance(x,dict) and integer(x,'status')==1]
         if len(active)==1:start,end=period(active[0])
     if start is None or end is None or end<=start:start,end=None,None
-    return EndgameProgress(mode,value,maximum,start,end,basis,score_detail(mode,payload))
+    detail=score_detail(mode,payload)
+    if mode=='shiyu':detail=basis+(' · '+detail if detail else '')
+    return EndgameProgress(mode,value,maximum,start,end,basis,detail,verified,has_record)
 
 async def fetch(client, uid, game):
     """Reuse existing genshin.Client cookie and DS/auth refresh logic. No Todoist mutation."""
@@ -255,7 +311,8 @@ async def fetch(client, uid, game):
             if mode=='arbitration':args['schedule_type']=3
             payload=await candidate(int(uid),**args)
             parsed=parse(mode,payload)
-            if parsed is None:errors[mode]='응답 성공·보상 점수/별 데이터 해석 불가'
+            if parsed is None:
+                errors[mode]=shiyu_diagnostic(payload) if mode=='shiyu' else '응답 성공·보상 점수/별 데이터 해석 불가'
             else:
                 if mode=='deadly':
                     from dataclasses import replace

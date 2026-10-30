@@ -13,6 +13,8 @@
 
 게임 진행도와 할 일을 Todoist에 연결하는 Windows·Android 앱입니다. 한국어·한국 시간(KST)을 사용하며 PC가 꺼져 있어도 Android에서 독립적으로 동기화합니다.
 
+0.11.11에서 PC·Android의 시유 방어전 미도전을 **기록 없음**으로 표시하고, 일부 기록은 확인된 **S 등급 개수**로 보여줍니다. 실제 조회 실패와 구별하며 현재 회차의 네 S 등급이 확인되기 전에는 자동 완료하지 않습니다. [시유 판정·검증 안내](docs/SHIYU_RECORDS.md)
+
 ## Android 0.11.9 처음 설치
 
 새 서명키를 사용하는 정식 앱입니다. **처음 한 번은 기존 앱 위의 업데이트가 아니라 별도 앱으로 설치**되며 계정 연결과 접근성·알림 권한을 다시 설정해야 합니다. 기존 앱과 데이터는 유지됩니다.
@@ -63,4 +65,4 @@ Android는 JDK 17·SDK 35·Gradle 8.10.2를 사용합니다. [프로젝트 시�
 
 회귀 테스트·빌드 성공은 실제 계정 로그인·게임 API·사용자 Windows·Android17 동작 검증을 대신하지 않습니다. 기존 게임의 공식 초기화 시각 전체 재검증도 남아 있습니다.
 
-[0.11.10 변경](docs/releases/v0.11.10.md) · [Android 첫 전환 안내](docs/releases/v0.11.9.md) · [초기화·플로팅 구현과 검증](docs/RESET_FLOATING_0118.md) · [제품·Todoist 기준](docs/PRODUCT_AND_TODOIST.md)
+[0.11.11 변경](docs/releases/v0.11.11.md) · [Windows 자동 닫기 수정](docs/releases/v0.11.10.md) · [Android 첫 전환 안내](docs/releases/v0.11.9.md) · [초기화·플로팅 구현과 검증](docs/RESET_FLOATING_0118.md) · [제품·Todoist 기준](docs/PRODUCT_AND_TODOIST.md)

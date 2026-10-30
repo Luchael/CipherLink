@@ -3,7 +3,9 @@ import org.json.JSONObject
 class AccountGauge(
     val game: String, val account: String, val metric: String, val current: Int, val maximum: Int,
     val observedAtMs: Long = System.currentTimeMillis(), val periodKey: String? = null,
-    val periodStartMs: Long? = null, val periodEndMs: Long? = null, val displayDetail: String = "", val displayTitle:String="",val displayOnly:Boolean=false)
+    val periodStartMs: Long? = null, val periodEndMs: Long? = null, val displayDetail: String = "", val displayTitle:String="",val displayOnly:Boolean=false, val completionVerified:Boolean=true, val hasRecord:Boolean=true) {
+    val filled: Boolean get() = completionVerified && maximum > 0 && current >= maximum
+}
 class GameRole(val game: String, val uid: String, val server: String, val nickname: String)
 object GameNet { fun encode(s: String): String = s
     fun json(url: String, headers: Map<String,String>): JSONObject = error("Network disabled in test") }

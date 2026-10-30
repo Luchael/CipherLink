@@ -12,7 +12,8 @@ object ProgressPresentation {
     fun visible(game: String, metric: String) = metric !in setOf("umbral_complete","crisis_complete","war_complete") && !(game in setOf("hsr","zzz") && metric=="weekly")
     fun known(current: Int?, maximum: Int?) = current != null && current >= 0 && maximum != null && maximum > 0
     fun value(current: Int?, maximum: Int?) = if (known(current,maximum)) "$current / $maximum" else "정보 없음"
-    fun value(metric: String, current: Int?, maximum: Int?) = value(current,maximum) +
+    fun value(metric: String, current: Int?, maximum: Int?, hasRecord: Boolean = true): String =
+        if (metric == "shiyu" && !hasRecord) "기록 없음" else value(current,maximum) +
         (if(known(current,maximum)) when(metric) {"shiyu"->" S";"deadly"->"별";else->""} else "")
     fun fraction(current: Int?, maximum: Int?) = if (known(current,maximum))
         (current!!.toLong() * 1000L / maximum!!).coerceIn(0L,1000L).toInt() else 0

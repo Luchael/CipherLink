@@ -1,5 +1,6 @@
 package org.json
 class JSONObject(private val map: Map<String,Any?> = emptyMap()) {
+    fun isNull(s: String): Boolean = map[s] == null
     fun optJSONObject(s: String): JSONObject? = map[s] as? JSONObject
     fun optString(s: String): String = map[s]?.toString() ?: ""
     fun optJSONArray(s: String): JSONArray? = map[s] as? JSONArray

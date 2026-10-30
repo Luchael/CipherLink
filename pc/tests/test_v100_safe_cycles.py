@@ -27,7 +27,7 @@ class RealWorldSafeCycleTests(unittest.TestCase):
             'pass_fifth_floor':True,'brief':{'score':120630,'max_score':150000},
             'fourth_layer_detail':{'rating':'S'},
             'fitfh_layer_detail':{'layer_challenge_info_list':[
-                {'score':26390},{'score':48516},{'score':45724}]}}}
+                {'score':26390,'rating':'S'},{'score':48516,'rating':'S'},{'score':45724,'rating':'S'}]}}}
         result=parse('shiyu',record)
         self.assertEqual((result.value,result.goal),(4,4))
         self.assertTrue(result.current())

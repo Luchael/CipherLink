@@ -409,10 +409,10 @@ class MainActivity : Activity() {
             for(g in group.gauges.distinctBy {it.metric}.filter {ProgressPresentation.visible(group.game,it.metric)}) {
                 val row=LinearLayout(this).apply {gravity=Gravity.CENTER_VERTICAL}
                 row.addView(label(g.displayTitle.ifBlank {ProgressPresentation.title(group.game,g.metric)},15f,bold=true),LinearLayout.LayoutParams(0,-2,1f))
-                if(!g.displayOnly) row.addView(label(ProgressPresentation.value(g.metric,g.current,g.maximum),17f,UiKit.BLUE,true))
+                if(!g.displayOnly) row.addView(label(ProgressPresentation.value(g.metric,g.current,g.maximum,g.hasRecord),17f,UiKit.BLUE,true))
                 card.addView(row,UiKit.margin(this,14,6))
                 if(!g.displayOnly) {
-                card.addView(ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply {
+                if(g.hasRecord) card.addView(ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply {
                     max=1000;progress=ProgressPresentation.fraction(g.current,g.maximum)
                     progressTintList=ColorStateList.valueOf(UiKit.GREEN);progressBackgroundTintList=ColorStateList.valueOf(UiKit.PANEL)
                 },LinearLayout.LayoutParams(-1,dp(7)))
@@ -420,7 +420,7 @@ class MainActivity : Activity() {
                     if(g.periodEndMs!=null && System.currentTimeMillis()>=g.periodEndMs) " · 기간 종료"
                     else if(EndgameRecords.currentPeriod(g,System.currentTimeMillis(),GameRules.resetMinutes(this,g.game))) " · 현재 회차" else " · 회차 확인 필요"
                 } else ""
-                card.addView(label(ProgressPresentation.state(g.current,g.maximum)+period,12f,UiKit.MUTED),UiKit.margin(this,5,4))
+                card.addView(label((if (!g.hasRecord) "미도전" else if (g.completionVerified) ProgressPresentation.state(g.current,g.maximum) else "확인 필요")+period,12f,UiKit.MUTED),UiKit.margin(this,5,4))
                 }
                 if(g.displayDetail.isNotBlank()) card.addView(label(g.displayDetail,12f,UiKit.MUTED),UiKit.margin(this,4,4))
                 if(g.metric=="weekly_mission") card.addView(label("매주 월요일 · [엔필] 주간퀘스트 연동",12f,UiKit.MUTED),UiKit.margin(this,4,4))
