@@ -3,18 +3,13 @@ android {
     namespace = "com.gametodo.nativeapp"
     compileSdk = 35
     defaultConfig {
-        applicationId = "com.gametodo.nativeapp"
+        applicationId = "com.gametodo.cipherlink"
         minSdk = 30
         targetSdk = 35
-        versionCode = 36
-        versionName = "0.11.8"
-        // Separate diagnostic install preserves the existing app and its Keystore.
-        if (providers.gradleProperty("cipherlinkPreview").orNull == "true") {
-            applicationIdSuffix = ".preview"
-            resValue("string", "app_name", "사이퍼링크")
-        } else {
-            resValue("string", "app_name", "사이퍼링크")
-        }
+        versionCode = 37
+        versionName = "0.11.9"
+        // New signing lineage; old installations and their Keystore remain intact.
+        resValue("string", "app_name", "사이퍼링크")
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }

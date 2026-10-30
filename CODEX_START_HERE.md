@@ -1,6 +1,6 @@
 # Codex: 이 파일부터 읽으세요
 
-> **현재 개발 상태:** PC·Android **0.11.8 소스**, Windows **0.11.8 정식 릴리스 게시 완료**. [초기화·플로팅 수정 및 남은 검증](docs/RESET_FLOATING_0118.md)을 먼저 읽으세요. PC 292개·Kotlin 28개 통과, Android unsigned release 빌드 및 Windows CI 설치·업데이트·제거 검증 성공. Android 0.11.8은 기존 서명키가 없어 설치용 업데이트 APK 미제공이며 기존 0.11.7 APK를 유지합니다. 공식 초기화 시각 전체 조사와 사용자 실계정·실기기 검증은 미완료입니다. 아래 기준선과 구 우선순위는 원본 ZIP 인수 당시 기록입니다. 한국 서버 우선, 없으면 글로벌 Asia, 한국어/KST, 모바일 주 실행 정책을 유지합니다.
+> **현재 개발 상태:** PC·Android **0.11.9**, 새 Android 정식 설치 계열 `com.gametodo.cipherlink`. [자동 배포](docs/AUTOMATIC_RELEASES.md), [0.11.9 변경](docs/releases/v0.11.9.md)을 먼저 읽으세요. PC 296개·Kotlin 28개 통과, 기존 초기화·플로팅 개선 유지. 새 고정 서명키로 GitHub Secrets 자동 서명·배포를 준비했고 CI 검증을 진행합니다. 기존 Android 앱/데이터를 지우지 않으며 첫 설치 후 계정·권한을 다시 연결해야 합니다. 한국 서버 우선, 없으면 글로벌 Asia, 한국어/KST, 모바일 주 실행 정책을 유지합니다. 아래 구 기준선은 원본 ZIP 인수 당시 기록입니다.
 
 ## 프로젝트 미션
 

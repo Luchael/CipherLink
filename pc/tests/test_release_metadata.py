@@ -15,8 +15,9 @@ class ReleaseMetadataTests(unittest.TestCase):
         self.assertRegex(version,r'^\d+\.\d+\.\d+$')
         self.assertGreater(code,30)
         config=json.loads((ROOT/'release-config.json').read_text(encoding='utf-8'))
-        self.assertEqual(config['android_package'],'com.gametodo.nativeapp.preview')
-        self.assertEqual(config['android_signer_sha256'],'2f5505f8e8b1b8b00ea9ed27d6e2ce733ad8b8f46aa19797eb8a5a68de5897cb')
+        self.assertEqual(config['android_package'],'com.gametodo.cipherlink')
+        self.assertEqual(config['android_previous_package'],'com.gametodo.nativeapp.preview')
+        self.assertEqual(config['android_signer_sha256'],'930858959aa5a9337e94bf79e8945d581e9bf437d1fcc365fb65660dc033426e')
 
     def test_manifest_requires_both_and_detects_file_changes(self):
         with tempfile.TemporaryDirectory() as temporary:

@@ -2,48 +2,64 @@ name: Release CipherLink
 
 on:
   push:
+    branches: [main]
+    paths:
+      - 'pc/gametodo/__init__.py'
+      - 'android/app/build.gradle.kts'
+      - '.github/release-request.json'
     tags: ['v*']
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release, for example 0.11.8'
-        required: true
+        description: 'Version to release; must match the selected source'
+        required: false
         type: string
 
 permissions:
   contents: write
 
+# Serialize main/tag events; completed versions are skipped by the plan job.
 concurrency:
-  group: cipherlink-public-release-${{ inputs.version || github.ref_name }}
+  group: cipherlink-release
   cancel-in-progress: false
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      source: ${{ steps.plan.outputs.source }}
+      publish: ${{ steps.plan.outputs.publish }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REQUESTED_VERSION: ${{ inputs.version || (github.ref_type == 'tag' && github.ref_name) || '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Pin source and skip completed releases
+        id: plan
+        run: python tools/prepare_release.py
+
   windows:
+    needs: plan
+    if: needs.plan.outputs.publish == 'true'
     runs-on: windows-2022
     timeout-minutes: 35
     env:
       GH_TOKEN: ${{ github.token }}
       CIPHERLINK_BUILD_NONINTERACTIVE: '1'
-      REQUESTED_VERSION: ${{ inputs.version || github.ref_name }}
+      RELEASE_VERSION: ${{ needs.plan.outputs.version }}
     steps:
-      - name: Resolve version
-        shell: pwsh
-        run: |
-          $version = $env:REQUESTED_VERSION -replace '^v', ''
-          if ($version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') { throw 'Invalid version' }
-          "RELEASE_VERSION=$version" >> $env:GITHUB_ENV
-          "RELEASE_TAG=v$version" >> $env:GITHUB_ENV
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.plan.outputs.source }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Validate source version
-        shell: pwsh
-        run: |
-          python tools/release_metadata.py $env:RELEASE_VERSION
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build Windows application
         working-directory: pc
         shell: pwsh
@@ -60,28 +76,105 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./tools/build_windows_installer.ps1 -Version 0.11.5 -InputExecutable previous/CipherLink-Windows.exe -OutputDirectory previous/setup
           ./tools/test_windows_installer.ps1 -PreviousInstaller previous/setup/CipherLink-Windows-Setup.exe -CurrentInstaller publish/CipherLink-Windows-Setup.exe -CurrentVersion $env:RELEASE_VERSION
-          python tools/release_metadata.py $env:RELEASE_VERSION --directory publish --windows-only
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Create or resume release draft
-        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: |
+            publish/CipherLink-Windows.exe
+            publish/CipherLink-Windows-Setup.exe
+            publish/CipherLink-Windows-Setup.exe.sha256
+          if-no-files-found: error
+
+  android:
+    needs: plan
+    if: needs.plan.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.source }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Build Android release
+        run: gradle --no-daemon --max-workers=2 --console=plain -p android :app:assembleRelease
+      - name: Sign and verify APK with the fixed release identity
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: python tools/android_release.py --unsigned android/app/build/outputs/apk/release/app-release-unsigned.apk --output publish/CipherLink-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: publish/CipherLink-Android.apk
+          if-no-files-found: error
+
+  publish:
+    needs: [plan, windows, android]
+    if: needs.plan.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.source }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-release'
+          merge-multiple: true
+          path: publish
+      - name: Validate versions and generate checksums
+        run: python tools/release_metadata.py "$RELEASE_VERSION" --directory publish
+      - name: Publish both platforms together
+        shell: bash
         run: |
-          $draft = gh release view $env:RELEASE_TAG --json isDraft --jq .isDraft 2>$null
-          if ($LASTEXITCODE -ne 0) {
-            gh release create $env:RELEASE_TAG --verify-tag --draft --title "사이퍼링크 $env:RELEASE_VERSION" --notes-file "docs/releases/v$env:RELEASE_VERSION.md"
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          } elseif ($draft -ne 'true') { throw 'Release already published; existing files will not be overwritten' }
-      - name: Attach verified Windows files
-        shell: pwsh
-        run: |
-          gh release upload $env:RELEASE_TAG publish/CipherLink-Windows.exe publish/CipherLink-Windows-Setup.exe publish/CipherLink-Windows-Setup.exe.sha256 publish/SHA256SUMS.txt publish/update.json --clobber
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Publish release
-        shell: pwsh
-        run: |
-          gh release edit $env:RELEASE_TAG --draft=false --latest
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Update main README download links
-        shell: pwsh
-        run: |
-          python tools/update_download_links.py $env:RELEASE_VERSION --github --android-unavailable
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          set -euo pipefail
+          tag="v$RELEASE_VERSION"
+          if draft=$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [ "$draft" != true ]; then
+              echo 'An existing published release will not be overwritten.'
+              exit 1
+            fi
+          else
+            if [ -f "docs/releases/$tag.md" ]; then
+              gh release create "$tag" --verify-tag --draft --title "사이퍼링크 $RELEASE_VERSION" --notes-file "docs/releases/$tag.md"
+            else
+              gh release create "$tag" --verify-tag --draft --title "사이퍼링크 $RELEASE_VERSION" --generate-notes
+            fi
+          fi
+          gh release upload "$tag" publish/CipherLink-Windows.exe publish/CipherLink-Windows-Setup.exe publish/CipherLink-Windows-Setup.exe.sha256 publish/CipherLink-Android.apk publish/SHA256SUMS.txt publish/update.json --clobber
+          gh release edit "$tag" --draft=false --latest
+  downloads:
+    needs: [plan, publish]
+    if: always() && needs.plan.result == 'success' && (needs.plan.outputs.publish == 'false' || needs.publish.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.source }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Update README downloads on main
+        run: python tools/update_download_links.py "$RELEASE_VERSION" --github

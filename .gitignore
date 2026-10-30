@@ -21,3 +21,10 @@
 **/*.jks
 **/*.keystore
 **/*api_diagnostic*.json
+
+# Android private signing material and local setup bundles
+**/*.p12
+**/*.pfx
+**/github-secret-*.txt
+**/CipherLink-signing-key-backup-*.zip
+**/CipherLink-GitHub-signing-setup-*.zip

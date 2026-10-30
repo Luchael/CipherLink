@@ -1,8 +1,11 @@
 {
   "repository": "Luchael/CipherLink",
-  "android_package": "com.gametodo.nativeapp.preview",
-  "android_signer_sha256": "2f5505f8e8b1b8b00ea9ed27d6e2ce733ad8b8f46aa19797eb8a5a68de5897cb",
+  "android_package": "com.gametodo.cipherlink",
+  "android_signer_sha256": "930858959aa5a9337e94bf79e8945d581e9bf437d1fcc365fb65660dc033426e",
   "windows_asset": "CipherLink-Windows.exe",
   "android_asset": "CipherLink-Android.apk",
-  "windows_installer_asset": "CipherLink-Windows-Setup.exe"
+  "windows_installer_asset": "CipherLink-Windows-Setup.exe",
+  "android_previous_package": "com.gametodo.nativeapp.preview",
+  "android_previous_signer_sha256": "2f5505f8e8b1b8b00ea9ed27d6e2ce733ad8b8f46aa19797eb8a5a68de5897cb",
+  "android_key_alias": "cipherlink-release"
 }

@@ -50,9 +50,11 @@ def main():
     if not notes.is_file(): parser.error('Release notes are missing')
     head=command(['git','rev-parse','HEAD'],'Source revision')
     command(['gradle','--no-daemon','--max-workers=3','--console=plain','-p','android',
-             '-PcipherlinkPreview=true',':app:assembleDebug'],'Android build')
+             ':app:assembleRelease'],'Android build')
     sdk=Path(os.environ.get('ANDROID_HOME',os.environ.get('ANDROID_SDK_ROOT','')))
-    apk=ROOT/'android/app/build/outputs/apk/debug/app-debug.apk'
+    unsigned=ROOT/'android/app/build/outputs/apk/release/app-release-unsigned.apk'
+    apk=ROOT/'android/app/build/outputs/apk/release/CipherLink-Android.apk'
+    command(['python','tools/android_release.py','--unsigned',str(unsigned),'--output',str(apk)],'Fixed-key Android signing')
     identity=inspect(apk,sdk/'build-tools/35.0.0')
     if (identity.package != config['android_package'] or identity.version != code or
             identity.signers != frozenset([config['android_signer_sha256']])):
