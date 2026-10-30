@@ -2,6 +2,15 @@
 
 게임 진행도와 할 일을 Todoist에 연결하는 Windows·Android 앱입니다. 한국어와 한국 시간(KST)을 사용하며, PC가 꺼져 있어도 Android에서 독립적으로 동기화합니다.
 
+## 버전 안내
+
+| 구분 | 버전 | 바로 가기 |
+| --- | --- | --- |
+| 기존 설치 파일 | **0.11.7** | 아래 Windows·Android 다운로드 |
+| 최신 개발 소스 | **0.11.8** | [소스 보기](https://github.com/Luchael/CipherLink/tree/codex/reset-floating-0118) · [변경·검증 기록](docs/RESET_FLOATING_0118.md) |
+
+**0.11.8의 초기화·플로팅 수정은 아래 0.11.7 설치 파일에 포함되어 있지 않습니다.** 0.11.8은 Android 서명 없는 빌드까지 검증했으며, 기존 서명키 복구가 필요해 설치용 업데이트 APK는 아직 제공하지 않습니다. Windows 0.11.8 설치판도 아직 제공하지 않습니다.
+
 <!-- cipherlink-downloads -->
 ### 설치 파일 · 0.11.7
 
@@ -15,6 +24,18 @@
 
 <!-- /cipherlink-downloads -->
 
+직접 다운로드가 시작되지 않으면 위 **버전 상세 및 파일 목록 → Assets**를 열어주세요. 릴리스 초안은 소유자 계정 로그인이 필요합니다. [릴리스 목록](https://github.com/Luchael/CipherLink/releases)에서도 확인할 수 있습니다.
+
+## 0.11.8에서 달라진 점
+
+- 게임 초기화 날짜·시각과 API의 실제 회차를 함께 검사해 이전 기록으로 새 할 일이 완료되는 상황을 차단
+- PC·Android에서 게임별 초기화 시각을 분 단위로 설정
+- 플로팅의 `새로고침 · + · ×`에서 이름·날짜·반복·프로젝트·섹션을 지정해 할 일 추가
+- 추가 요청을 재시도할 때 중복 등록 방지
+- 아이콘 이동을 프레임 단위로 갱신하고 화면 회전·노치·시스템 영역을 고려해 위치 제한
+
+기존 게임의 초기화 시각 전체 공식 재검증, 실제 계정과 Android17 기기 동작은 아직 미완료입니다. [구현 내용과 남은 확인 사항](docs/RESET_FLOATING_0118.md)을 참고하세요.
+
 ## 주요 기능
 
 - 연결한 게임 계정의 일일·주간·회차별 진행도 조회
@@ -27,17 +48,19 @@
 
 ## 설치와 업데이트
 
-이 페이지 위쪽의 다운로드 링크를 사용하세요. 로그인 후에도 직접 다운로드가 시작되지 않으면 버전 상세 페이지의 **Assets**를 펼치세요.
+- **Windows 설치판:** 설치 파일을 실행하면 처음 설치하거나 기존 위치에 업데이트합니다. Python 설치는 필요 없습니다.
+- **Windows 제거:** Windows 설정 → 앱 → 설치된 앱 → 사이퍼링크 → 제거. 기본 계정·설정 데이터는 보존합니다.
+- **Windows 무설치판:** EXE를 실행합니다. 업데이트할 때는 앱을 종료한 뒤 EXE를 교체합니다.
+- **Android:** 설치에 성공했던 앱 위에 같은 패키지·서명의 APK로 업데이트합니다. 원본 0.10.2와 별도 설치판은 서로 자동 통합되지 않습니다.
+- 업데이트를 위해 기존 앱이나 데이터 폴더를 삭제하지 마세요. 비밀번호·쿠키·토큰은 공유하지 마세요.
 
-- **Windows 설치판:** 설치 파일을 실행합니다. 이미 설치돼 있으면 기존 위치에 업데이트하며 계정·설정을 유지합니다. Python 설치는 필요 없습니다.
-- **Windows 제거:** Windows 설정 → 앱 → 설치된 앱 → 사이퍼링크 → 제거. 계정·설정 데이터는 보존합니다.
-- **Windows 무설치판:** EXE를 바로 실행하고, 업데이트는 앱을 종료한 뒤 EXE를 교체합니다.
-- **Android:** 기존 앱을 삭제하지 않고 APK를 열어 업데이트합니다. 설치에 성공한 기존 앱과 같은 패키지·서명을 유지해야 합니다.
-- 업데이트할 때 설정과 데이터 폴더를 삭제하지 마세요. 비밀번호·쿠키·토큰을 다른 사람에게 전달하지 마세요.
+[설치·업데이트·제거 안내](docs/DOWNLOAD_AND_UPDATES.md) · [Android 업데이트 호환성 안내](docs/APK_UPDATE_DIAGNOSIS.md)
 
 ## 개발
 
-현재 소스 버전: **PC·Android 0.11.8**. [초기화·플로팅 변경 및 검증 범위](docs/RESET_FLOATING_0118.md). 위 설치 파일은 기존 0.11.7이며, 0.11.8 설치용 APK는 기존 서명키 복구 후 제공할 수 있습니다.
+최신 소스는 [0.11.8 개발 브랜치](https://github.com/Luchael/CipherLink/tree/codex/reset-floating-0118)에 있습니다. [소스 ZIP 받기](https://github.com/Luchael/CipherLink/archive/refs/heads/codex/reset-floating-0118.zip)는 개발용이며 설치 파일이 아닙니다.
+
+PC 개발·실행:
 
 ```bash
 cd pc
@@ -46,10 +69,12 @@ python -m unittest discover -s tests -q
 python -m gametodo gui
 ```
 
-Android는 `android/`를 Android Studio에서 열어 빌드합니다. JDK 17과 Android SDK 35를 사용합니다. [프로젝트 시작 안내](CODEX_START_HERE.md)와 [개발 지침](AGENTS.md)을 참고하세요.
+Android는 [android/ 프로젝트](android/)를 Android Studio에서 엽니다. JDK 17·SDK 35·Gradle 8.10.2를 사용합니다. 기존 별도 설치판의 패키지를 유지하려면 `cipherlinkPreview=true` 옵션이 필요하며, 업데이트 APK에는 기존 개인 서명키가 필요합니다.
+
+[프로젝트 시작 안내](CODEX_START_HERE.md) · [개발 지침](AGENTS.md) · [제품·Todoist 기준](docs/PRODUCT_AND_TODOIST.md)
 
 ## 검증 범위
 
-회귀 테스트와 빌드 성공은 실제 계정 로그인·게임 API·Windows 실행·Android 설치 검증을 대신하지 않습니다. 확인하지 못한 기록을 0점이나 완료로 간주하지 않습니다.
+0.11.8은 PC 테스트 **290개**, Kotlin 회귀 프로그램 **28개**, Android 서명 없는 release 빌드를 통과했습니다. 실제 계정 로그인·게임 API·Todoist 생성·Windows 실행·Android 설치 성공을 의미하지 않습니다. 확인하지 못한 기록은 0점이나 완료로 간주하지 않습니다.
 
-[설치·업데이트·제거 안내](docs/DOWNLOAD_AND_UPDATES.md) · [최신 변경 내역](docs/INSTALLER_0117.md) · [제품·Todoist 기준](docs/PRODUCT_AND_TODOIST.md)
+[최신 변경 내역 · 0.11.8](docs/RESET_FLOATING_0118.md) · [기존 설치판 · 0.11.7](docs/INSTALLER_0117.md) · [이전 기능 변경 · 0.11.6](docs/PROGRESS_0116.md)
