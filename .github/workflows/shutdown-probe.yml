@@ -1,0 +1,31 @@
+name: Diagnose running application shutdown
+on:
+  push:
+    branches: [main]
+    paths: ['.github/shutdown-probe-request.json']
+permissions:
+  contents: read
+jobs:
+  shutdown:
+    runs-on: windows-2022
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download the unchanged 0.11.9 installer
+        shell: pwsh
+        run: |
+          gh release download v0.11.9 --pattern CipherLink-Windows-Setup.exe --dir baseline
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "CIPHERLINK_SHUTDOWN_INSTALLER=$((Resolve-Path baseline/CipherLink-Windows-Setup.exe).Path)" >> $env:GITHUB_ENV
+          'CIPHERLINK_SHUTDOWN_VERSION=0.11.9' >> $env:GITHUB_ENV
+      - name: Reproduce hidden and refusing application shutdown
+        shell: pwsh
+        run: |
+          $env:PYTHONPATH = 'pc'
+          python -m unittest pc.tests.test_installer_shutdown -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
