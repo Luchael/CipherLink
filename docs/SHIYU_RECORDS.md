@@ -34,6 +34,8 @@
 
 로컬 PC 312개 중 일반 검사 310개 통과, Windows 전용 2개는 Windows CI에서 실행한다. Kotlin 검사 29개 통과. 기존 실제 회차/초기화 경계 검사도 포함한다.
 
+2026-10-31 KST [정식 배포 실행 41095385815](https://github.com/Luchael/CipherLink/actions/runs/41095385815)이 3분 4초 만에 성공했다. Windows 빌드·설치 수명주기·숨김/종료 거부 프로세스 자동 종료 검사와 Android 빌드·고정 서명 검증을 통과했다. 게시된 APK를 다시 받아 versionCode 39, 패키지·인증서·SHA256·ZIP을 확인했고 Windows 두 파일의 다운로드 HTTP 200과 README 맨 위 세 링크의 v0.11.11 일치를 확인했다. [정식 릴리스](https://github.com/Luchael/CipherLink/releases/tag/v0.11.11)
+
 ```bash
 PYTHONPATH=pc python -m unittest discover -s pc/tests -p test_shiyu_response_contract.py -v
 PYTHONPATH=pc python -m unittest discover -s pc/tests -q

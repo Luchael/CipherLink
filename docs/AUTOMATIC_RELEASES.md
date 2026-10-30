@@ -26,6 +26,8 @@
 
 ## Android 설치 계열
 
+최신 확인: [0.11.11 실행](https://github.com/Luchael/CipherLink/actions/runs/41095385815)이 Windows·Android 빌드, 검증, 정식 게시, README 다운로드 링크 갱신까지 성공했다. README 상단 다운로드 세 개는 v0.11.11이며 Android versionCode는 39다. [시유 수정·배포 검증](SHIYU_RECORDS.md)
+
 0.11.9부터 패키지 `com.gametodo.cipherlink`와 release-config.json에 기록된 고정 공개 인증서 지문을 사용한다. 이전 `com.gametodo.nativeapp.preview` 앱과는 별도 설치다. 처음 한 번 계정·권한을 다시 설정하며, 기존 앱 자동 확인/게임 감지를 꺼서 동시 동작을 방지한다. 기존 데이터는 삭제하지 않는다.
 
 새 키와 비밀번호는 사용자가 클라우드 환경 밖에도 백업해야 한다. 같은 앱을 업데이트할 때 패키지와 키를 다시 바꾸지 않는다. 이전 설치 계열의 공개 인증서 정보는 이력으로 보존한다.
