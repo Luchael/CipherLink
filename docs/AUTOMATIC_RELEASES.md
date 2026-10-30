@@ -22,7 +22,7 @@
 
 별칭은 `cipherlink-release`다. 개인 키는 임시 경로에서만 사용한 뒤 지운다. 업로드 아티팩트에는 서명된 APK만 들어간다. 키 파일·비밀번호·설정 ZIP을 공개 GitHub에 올리지 않는다.
 
-2026-10-31 KST 사용자가 두 Secrets 등록 완료를 알려주었다. 실제 CI 서명 성공을 확인하기 전에는 등록 내용을 검증 완료로 간주하지 않는다. 설정 API는 현재 연결에서 403을 반환하므로 값이나 목록을 직접 읽지 않는다.
+2026-10-31 KST 사용자가 두 Secrets를 등록했고, [실행 41078740805](https://github.com/Luchael/CipherLink/actions/runs/41078740805)에서 실제 APK 서명·인증서 검증과 Windows·Android 정식 게시가 성공했다. 게시된 APK를 다시 받아 versionName 0.11.9, versionCode 37, 패키지·서명·체크섬을 확인했고 Windows 다운로드 주소도 HTTP 200을 확인했다. README 맨 위 세 설치 파일 링크는 모두 v0.11.9를 가리킨다. 설정 API는 현재 연결에서 403을 반환하며, Secrets 값이나 목록을 읽는 대신 실제 CI 사용 성공으로 검증했다.
 
 ## Android 설치 계열
 

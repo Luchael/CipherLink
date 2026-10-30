@@ -1,6 +1,6 @@
 # Codex: 이 파일부터 읽으세요
 
-> **현재 개발 상태:** PC·Android **0.11.9**, 새 Android 정식 설치 계열 `com.gametodo.cipherlink`. [자동 배포](docs/AUTOMATIC_RELEASES.md), [0.11.9 변경](docs/releases/v0.11.9.md)을 먼저 읽으세요. PC 296개·Kotlin 28개 통과, 기존 초기화·플로팅 개선 유지. 새 고정 서명키로 GitHub Secrets 자동 서명·배포를 준비했고 CI 검증을 진행합니다. 기존 Android 앱/데이터를 지우지 않으며 첫 설치 후 계정·권한을 다시 연결해야 합니다. 한국 서버 우선, 없으면 글로벌 Asia, 한국어/KST, 모바일 주 실행 정책을 유지합니다. 아래 구 기준선은 원본 ZIP 인수 당시 기록입니다.
+> **현재 개발 상태:** PC·Android **0.11.9**, 새 Android 정식 설치 계열 `com.gametodo.cipherlink`. [자동 배포](docs/AUTOMATIC_RELEASES.md), [0.11.9 변경](docs/releases/v0.11.9.md)을 먼저 읽으세요. PC 296개·Kotlin 28개 통과, 기존 초기화·플로팅 개선 유지. 새 고정 서명키와 GitHub Secrets로 자동 서명·배포 CI가 성공했고 Windows·APK 모두 0.11.9 정식 게시 및 README 상단 링크 갱신을 확인했습니다. 기존 Android 앱/데이터를 지우지 않으며 첫 설치 후 계정·권한을 다시 연결해야 합니다. 한국 서버 우선, 없으면 글로벌 Asia, 한국어/KST, 모바일 주 실행 정책을 유지합니다. 아래 구 기준선은 원본 ZIP 인수 당시 기록입니다.
 
 ## 프로젝트 미션
 
