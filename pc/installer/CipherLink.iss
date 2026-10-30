@@ -29,7 +29,8 @@ OutputDir={#OutputDir}
 OutputBaseFilename=CipherLink-Windows-Setup
 Compression=lzma2/fast
 SolidCompression=yes
-CloseApplications=yes
+; Restart Manager must also stop hidden or non-responsive holders of our EXE.
+CloseApplications=force
 RestartApplications=no
 WizardStyle=modern
 VersionInfoVersion={#AppVersion}.0

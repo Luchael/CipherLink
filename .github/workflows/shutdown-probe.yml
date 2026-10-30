@@ -16,14 +16,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Download the unchanged 0.11.9 installer
+      - name: Repackage the same 0.11.9 EXE with corrected shutdown settings
         shell: pwsh
         run: |
-          gh release download v0.11.9 --pattern CipherLink-Windows-Setup.exe --dir baseline
+          gh release download v0.11.9 --pattern CipherLink-Windows.exe --dir baseline
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "CIPHERLINK_SHUTDOWN_INSTALLER=$((Resolve-Path baseline/CipherLink-Windows-Setup.exe).Path)" >> $env:GITHUB_ENV
+          ./tools/build_windows_installer.ps1 -Version 0.11.9 -InputExecutable baseline/CipherLink-Windows.exe -OutputDirectory probe
+          "CIPHERLINK_SHUTDOWN_INSTALLER=$((Resolve-Path probe/CipherLink-Windows-Setup.exe).Path)" >> $env:GITHUB_ENV
           'CIPHERLINK_SHUTDOWN_VERSION=0.11.9' >> $env:GITHUB_ENV
-      - name: Reproduce hidden and refusing application shutdown
+      - name: Verify hidden and refusing application shutdown
         shell: pwsh
         run: |
           $env:PYTHONPATH = 'pc'
