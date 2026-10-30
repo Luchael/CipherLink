@@ -1,16 +1,13 @@
 # 사이퍼링크 · CipherLink
 
 <!-- cipherlink-downloads -->
-### 설치 파일 · 0.11.8
+### 설치 파일 · 0.11.9
 
-- [**Windows 설치·업데이트 다운로드**](https://github.com/Luchael/CipherLink/releases/download/v0.11.8/CipherLink-Windows-Setup.exe)
-- [Windows 무설치 실행 파일](https://github.com/Luchael/CipherLink/releases/download/v0.11.8/CipherLink-Windows.exe)
+- [**Windows 설치·업데이트 다운로드**](https://github.com/Luchael/CipherLink/releases/download/v0.11.9/CipherLink-Windows-Setup.exe)
+- [Windows 무설치 실행 파일](https://github.com/Luchael/CipherLink/releases/download/v0.11.9/CipherLink-Windows.exe)
+- [Android APK 다운로드](https://github.com/Luchael/CipherLink/releases/download/v0.11.9/CipherLink-Android.apk)
 
-Android 0.11.8 설치용 업데이트 APK는 기존 서명키 복구 후 제공됩니다.
-- [Android 기존 버전 0.11.7 다운로드](https://github.com/Luchael/CipherLink/releases/download/untagged-f06c6b073a26012ef117/CipherLink-Android.apk)
-  기존 APK는 소유자 계정 로그인이 필요하며, 새 버전의 수정은 포함하지 않습니다.
-
-[버전 상세 및 파일 목록](https://github.com/Luchael/CipherLink/releases/tag/v0.11.8)
+[버전 상세 및 파일 목록](https://github.com/Luchael/CipherLink/releases/tag/v0.11.9)
 
 <!-- /cipherlink-downloads -->
 
